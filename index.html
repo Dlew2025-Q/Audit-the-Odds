@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audit the Odds</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1023,8 +1023,7 @@
                     Analyzing...
                 `;
                 analysisContainer.style.display = 'block';
-                analysisContainer.innerHTML = '<canvas id="chart-' + gameIndex + '"></canvas>';
-                const ctx = document.getElementById('chart-' + gameIndex).getContext('2d');
+                analysisContainer.innerHTML = '';
                 
                 const prompt = `Provide a comparative analysis for the upcoming ${sport} game between ${awayTeam} (away) and ${homeTeam} (home). Rate each team from 1 (weak) to 10 (strong) in four distinct categories: "Offense", "Defense", "Recent Form", and "Injury Impact" (a lower score means more negative impact from injuries).`;
                 const payload = {
@@ -1072,121 +1071,42 @@
                         const analysis = JSON.parse(jsonText);
                         const awayRatings = analysis.away_team_ratings;
                         const homeRatings = analysis.home_team_ratings;
-                        const labels = ['Offense', 'Defense', 'Recent Form', 'Injury Impact'];
-                        const awayData = [awayRatings.offense, awayRatings.defense, awayRatings.recent_form, awayRatings.injury_impact];
-                        const homeData = [homeRatings.offense, homeRatings.defense, homeRatings.recent_form, homeRatings.injury_impact];
+                        const categories = {
+                            offense: 'Offense',
+                            defense: 'Defense',
+                            recent_form: 'Recent Form',
+                            injury_impact: 'Injury Impact'
+                        };
 
-                         new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: labels,
-                                datasets: [{
-                                    label: awayTeam,
-                                    data: awayData,
-                                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                                    borderColor: 'rgba(59, 130, 246, 1)',
-                                    borderWidth: 1
-                                }, {
-                                    label: homeTeam,
-                                    data: homeData,
-                                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                                    borderColor: 'rgba(239, 68, 68, 1)',
-                                    borderWidth: 1
-                                }]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        beginAtZero: true,
-                                        max: 10,
-                                        grid: { color: 'rgba(128, 128, 128, 0.1)' },
-                                        ticks: {
-                                            color: document.documentElement.classList.contains('dark') ? '#64748b' : '#475569',
-                                        }
-                                    },
-                                    y: {
-                                        grid: { display: false },
-                                        ticks: {
-                                            font: { size: 12, weight: 'bold' },
-                                            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
-                                        }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        position: 'top',
-                                        labels: {
-                                            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a'
-                                        }
-                                    },
-                                    tooltip: {
-                                        enabled: true
-                                    },
-                                    // Custom plugin to draw stars
-                                    'star-plugin': {
-                                        afterDatasetsDraw: (chart) => {
-                                            const { ctx, data, scales: { x, y } } = chart;
-                                            ctx.save();
-                                            ctx.font = 'bold 20px Arial';
-                                            ctx.fillStyle = '#facc15'; // gold color
-                                            
-                                            data.datasets[0].data.forEach((awayScore, index) => {
-                                                const homeScore = data.datasets[1].data[index];
-                                                let winnerX, winnerY;
-                                                const yPos = y.getPixelForTick(index);
+                        let tableHtml = `
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b" style="border-color: var(--border-color);">
+                                        <th class="p-2 font-semibold">Category</th>
+                                        <th class="p-2 font-semibold text-center">${awayTeam}</th>
+                                        <th class="p-2 font-semibold text-center">${homeTeam}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
 
-                                                if (awayScore > homeScore) {
-                                                    winnerX = x.getPixelForValue(awayScore) + 10;
-                                                    winnerY = yPos - (chart.getDatasetMeta(0).barThickness / 2) + 7;
-                                                } else if (homeScore > awayScore) {
-                                                    winnerX = x.getPixelForValue(homeScore) + 10;
-                                                    winnerY = yPos + (chart.getDatasetMeta(1).barThickness / 2) + 7;
-                                                } else {
-                                                    return; // No star if it's a tie
-                                                }
-                                                ctx.fillText('⭐', winnerX, winnerY);
-                                            });
-                                            ctx.restore();
-                                        }
-                                    }
-                                },
-                                layout: {
-                                     padding: {
-                                        right: 30 // Add padding to make space for the star
-                                    }
-                                }
-                            },
-                            plugins: [{
-                                id: 'star-plugin',
-                                afterDatasetsDraw: (chart) => {
-                                    const { ctx, data, scales: { x, y } } = chart;
-                                    ctx.save();
-                                    ctx.font = '24px Arial';
-                                    ctx.fillStyle = '#f59e0b'; // amber-500
-                                    
-                                    data.datasets[0].data.forEach((awayScore, index) => {
-                                        const homeScore = data.datasets[1].data[index];
-                                        if (awayScore === homeScore) return;
+                        for (const key in categories) {
+                            const awayScore = awayRatings[key];
+                            const homeScore = homeRatings[key];
+                            const awayStar = awayScore > homeScore ? ' <span class="text-yellow-500">⭐</span>' : '';
+                            const homeStar = homeScore > awayScore ? ' <span class="text-yellow-500">⭐</span>' : '';
 
-                                        const meta0 = chart.getDatasetMeta(0);
-                                        const meta1 = chart.getDatasetMeta(1);
+                            tableHtml += `
+                                <tr class="border-b" style="border-color: var(--border-color);">
+                                    <td class="p-2 font-medium">${categories[key]}</td>
+                                    <td class="p-2 text-center font-bold">${awayScore.toFixed(1)}${awayStar}</td>
+                                    <td class="p-2 text-center font-bold">${homeScore.toFixed(1)}${homeStar}</td>
+                                </tr>
+                            `;
+                        }
 
-                                        if (awayScore > homeScore) {
-                                            const bar = meta0.data[index];
-                                            ctx.fillText('⭐', bar.x + 5, bar.y + 8);
-                                        } else {
-                                            const bar = meta1.data[index];
-                                            ctx.fillText('⭐', bar.x + 5, bar.y + 8);
-                                        }
-                                    });
-                                    ctx.restore();
-                                }
-                            }]
-                        });
-
+                        tableHtml += `</tbody></table>`;
+                        analysisContainer.innerHTML = tableHtml;
 
                     } else {
                         throw new Error("No content received from AI.");
