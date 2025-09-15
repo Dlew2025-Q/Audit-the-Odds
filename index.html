@@ -300,8 +300,8 @@
 
             // --- Hardcoded API Keys ---
             const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
-            const geminiApiKey = 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM'; // <-- IMPORTANT: Replace with your actual Gemini API key
-
+ 			const geminiApiKey = 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM';
+            const GEMINI_API_KEY_PLACEHOLDER = 'YOUR_GEMINI_API_KEY_HERE';
 
             // --- THEME SWITCHER ---
             const applyTheme = (theme) => {
@@ -1009,7 +1009,7 @@
             }
             
             async function getGameAnalysis(button) {
-                 if (!geminiApiKey || geminiApiKey === 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM') {
+                 if (!geminiApiKey || geminiApiKey === 'YOUR_GEMINI_API_KEY_HERE') {
                     showError("Please add your Gemini API Key to the `index.html` file to use this feature.");
                     return;
                 }
@@ -1120,9 +1120,9 @@
             }
             
             async function getParlayRationale(picks) {
-                 if (!geminiApiKey || geminiApiKey === 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM') {
+                 if (!geminiApiKey || geminiApiKey === GEMINI_API_KEY_PLACEHOLDER) {
                     parlayRationaleContainer.style.display = 'block';
-                    parlayRationaleContainer.innerHTML = 'Please add your Gemini API key to the `index.html` file to use this feature.';
+                    parlayRationaleContainer.innerHTML = 'Please add your Gemini API key to use this feature.';
                     return;
                 }
 
@@ -1269,5 +1269,4 @@
     </script>
 </body>
 </html>
-
 
