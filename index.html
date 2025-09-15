@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audit the Odds</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -87,6 +88,7 @@
         .result-display {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 0.5rem 0.75rem;
             border-radius: 0.5rem;
             margin-top: 0.5rem;
@@ -113,15 +115,9 @@
         .utility-btn { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 500; transition: all 0.2s; }
         .utility-btn:hover { background-color: var(--accent-color-light); border-color: var(--accent-color); color: var(--accent-text-dark); }
 
-        /* Collapsible Section */
-        .collapsible { max-height: 0; overflow: hidden; transition: max-height 0.35s ease-in-out; }
-        .collapsible.open { max-height: 150px; }
-        #api-key-arrow { transition: transform 0.3s; }
-        #api-key-arrow.open { transform: rotate(180deg); }
-
         /* Modal Styles */
-        #help-modal { transition: opacity 0.3s; }
-        #help-modal-content { transition: transform 0.3s; }
+        #help-modal, #parlay-modal { transition: opacity 0.3s; }
+        #help-modal-content, #parlay-modal-content { transition: transform 0.3s; }
 
         /* Summary Dashboard */
         .stat-card {
@@ -144,32 +140,12 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
             </button>
             <div class="text-center">
-                <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v4.5</span></h1>
+                <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v5.0</span></h1>
                 <p class="text-lg text-secondary">Find value by analyzing live betting lines.</p>
             </div>
         </header>
 
         <main class="mt-8">
-             <!-- API Key Section -->
-            <div class="mb-6">
-                <div class="text-center">
-                    <button id="api-key-toggle" class="text-sm font-medium text-secondary hover:text-primary transition-colors">
-                        <span>Odds API Key Settings</span>
-                        <svg id="api-key-arrow" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                </div>
-                <div id="api-key-container" class="collapsible rounded-lg overflow-hidden mt-2">
-                     <div class="p-4" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
-                         <label for="odds-api-key-input" class="block text-sm font-medium mb-2">The Odds API Key</label>
-                         <div class="flex items-center space-x-2">
-                             <input type="password" id="odds-api-key-input" placeholder="Enter your API key from The Odds API" class="flex-grow p-2 rounded-md" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
-                             <button id="save-key-btn" class="text-sm font-semibold py-2 px-4 rounded-lg transition-colors" style="background-color: var(--accent-color); color: white;">Save</button>
-                         </div>
-                         <p class="text-xs text-secondary mt-2">Get your free API key from <a href="https://the-odds-api.com/" target="_blank" rel="noopener" class="underline">the-odds-api.com</a>. Your key is stored locally in your browser.</p>
-                     </div>
-                </div>
-            </div>
-
             <!-- Main Action Button -->
             <div id="analyze-section" class="text-center my-12">
                 <button id="analyze-today-btn" class="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2" style="background-color: var(--accent-color); color: white; focus-ring-color: var(--accent-color)">
@@ -262,6 +238,14 @@
             <div id="parlay-list-container" class="space-y-3 max-h-80 overflow-y-auto pr-2">
                 <!-- Parlay picks will be inserted here -->
             </div>
+            <div id="parlay-rationale-section" class="mt-4">
+                <button id="generate-rationale-btn" class="utility-btn text-sm w-full flex items-center justify-center">
+                    ✨ Generate Parlay Rationale
+                </button>
+                <div id="parlay-rationale-container" class="text-sm text-secondary mt-3 p-3 rounded-lg" style="background-color: var(--input-bg); display: none;">
+                    <!-- AI rationale will be loaded here -->
+                </div>
+            </div>
             <div class="mt-6 flex justify-end space-x-3">
                  <button id="cancel-parlay-btn" class="utility-btn text-sm py-2 px-4 rounded-lg">Cancel</button>
                  <button id="copy-parlay-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors" style="background-color: var(--accent-color); color: white;">
@@ -288,11 +272,6 @@
             const sortSelect = document.getElementById('sort-select');
             const copyBtn = document.getElementById('copy-btn');
             const copyBtnText = document.getElementById('copy-btn-text');
-            const oddsApiKeyInput = document.getElementById('odds-api-key-input');
-            const saveKeyBtn = document.getElementById('save-key-btn');
-            const apiKeyToggle = document.getElementById('api-key-toggle');
-            const apiKeyContainer = document.getElementById('api-key-container');
-            const apiKeyArrow = document.getElementById('api-key-arrow');
             const analyzeSection = document.getElementById('analyze-section');
             const analyzeTodayBtn = document.getElementById('analyze-today-btn');
             const strategyControls = document.getElementById('strategy-controls');
@@ -312,23 +291,17 @@
             const parlayListContainer = document.getElementById('parlay-list-container');
             const copyParlayBtn = document.getElementById('copy-parlay-btn');
             const copyParlayBtnText = document.getElementById('copy-parlay-btn-text');
+            const generateRationaleBtn = document.getElementById('generate-rationale-btn');
+            const parlayRationaleContainer = document.getElementById('parlay-rationale-container');
 
 
             let ALL_SPORTS_DATA = [];
             let gameCardElements = [];
 
-            // --- API KEY MANAGEMENT ---
-            oddsApiKeyInput.value = localStorage.getItem('theOddsApiKey') || 'cc51a757d14174fd8061956b288df39e';
-            saveKeyBtn.addEventListener('click', () => {
-                const key = oddsApiKeyInput.value.trim();
-                localStorage.setItem('theOddsApiKey', key);
-                saveKeyBtn.textContent = 'Saved!';
-                setTimeout(() => { saveKeyBtn.textContent = 'Save'; }, 2000);
-            });
-            apiKeyToggle.addEventListener('click', () => {
-                apiKeyContainer.classList.toggle('open');
-                apiKeyArrow.classList.toggle('open');
-            });
+            // --- Hardcoded API Keys ---
+            const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
+            const geminiApiKey = 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM'; // <-- IMPORTANT: Replace with your actual Gemini API key
+
 
             // --- THEME SWITCHER ---
             const applyTheme = (theme) => {
@@ -383,9 +356,8 @@
             const calculateEV = (winProb, decimalOdds) => (winProb * (decimalOdds - 1)) - (1 - winProb);
             
             async function fetchAndAnalyzeGames() {
-                const apiKey = localStorage.getItem('theOddsApiKey') || oddsApiKeyInput.value.trim();
-                if (!apiKey) {
-                    showError("Please enter your API key from The Odds API in the settings.");
+                if (!oddsApiKey) {
+                    showError("The Odds API key is missing. Please add it to the code.");
                     return;
                 }
 
@@ -398,7 +370,7 @@
                 try {
                     // Step 1: Fetch all active sports
                     processingText.textContent = 'Finding in-season sports...';
-                    const sportsApiUrl = `https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`;
+                    const sportsApiUrl = `https://api.the-odds-api.com/v4/sports/?apiKey=${oddsApiKey}`;
                     const sportsResponse = await fetch(sportsApiUrl);
                     if (!sportsResponse.ok) {
                         const errorData = await sportsResponse.json().catch(() => ({ message: sportsResponse.statusText }));
@@ -439,7 +411,7 @@
                     const commenceTimeTo = tomorrow.toISOString().slice(0, 19) + 'Z';
 
                     const promises = activeSportsToFetch.map(sportKey => {
-                        const apiUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds?apiKey=${apiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}&commenceTimeTo=${commenceTimeTo}`;
+                        const apiUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds?apiKey=${oddsApiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}&commenceTimeTo=${commenceTimeTo}`;
                         return fetch(apiUrl);
                     });
 
@@ -586,6 +558,15 @@
                             <div id="${gameId}-results" class="mt-4 space-y-3"></div>
                         </div>
                     </div>
+                     <!-- AI Analysis Section -->
+                    <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
+                        <button class="get-analysis-btn utility-btn text-sm w-full flex items-center justify-center" data-game-index="${index}" data-away-team="${game.away_team}" data-home-team="${game.home_team}" data-sport="${gameSport}">
+                             ✨ Get AI Game Analysis
+                        </button>
+                        <div id="game-${index}-analysis-container" class="text-sm text-secondary mt-3 p-3 rounded-lg" style="background-color: var(--input-bg); display: none;">
+                            <!-- AI analysis will be loaded here -->
+                        </div>
+                    </div>
                 `;
                 return card;
             }
@@ -709,13 +690,44 @@
                 let hasPositiveEv = false;
                 
                 const createResultElement = (ev, label, odds) => {
-                    if(!odds) return document.createDocumentFragment(); // Return an empty fragment if odds are null
-                    if (ev > 0) { hasPositiveEv = true; maxPositiveEv = Math.max(maxPositiveEv, ev); }
+                    if (!odds) return document.createDocumentFragment();
+                    if (ev > 0) {
+                        hasPositiveEv = true;
+                        maxPositiveEv = Math.max(maxPositiveEv, ev);
+                    }
                     const el = document.createElement('div');
-                    el.className = `result-display ${ev > 0 ? 'positive-ev' : 'negative-ev'}`;
+                    el.className = `result-display items-center ${ev > 0 ? 'positive-ev' : 'negative-ev'}`;
+
                     const oddsText = odds >= 2 ? `+${((odds - 1) * 100).toFixed(0)}` : `${(-100 / (odds - 1)).toFixed(0)}`;
                     const evText = ev > 0 ? `+${(ev * 100).toFixed(2)}%` : `${(ev * 100).toFixed(2)}%`;
-                    el.innerHTML = `<span><strong>${label}</strong> <span class="text-xs text-secondary">${oddsText}</span></span> <span class="font-bold">${evText}</span>`;
+
+                    // Visual Edge Indicator Logic
+                    const barWidth = Math.min(Math.abs(ev) * 100 * 4, 100); // Scaled by 4, so 25% EV is a full bar
+                    let barColor;
+
+                    if (ev > 0.10) { // > 10% EV
+                        barColor = '#16a34a'; // a strong green
+                    } else if (ev > 0.05) { // > 5% EV
+                        barColor = '#22c55e'; // a medium green
+                    } else if (ev > 0) { // > 0% EV
+                        barColor = '#4ade80'; // a light green
+                    } else { // Negative EV
+                        barColor = '#ef4444'; // a standard red
+                    }
+
+                    el.innerHTML = `
+                        <div class="flex-grow">
+                            <strong>${label}</strong> 
+                            <span class="text-xs text-secondary">${oddsText}</span>
+                        </div>
+                        <div class="flex items-center flex-shrink-0">
+                            <span class="font-bold w-16 text-right">${evText}</span>
+                            <div class="w-12 h-1.5 ml-2 rounded-full overflow-hidden" style="background-color: var(--input-bg);">
+                                <div class="h-full rounded-full" style="width: ${barWidth}%; background-color: ${barColor};"></div>
+                            </div>
+                        </div>
+                    `;
+
                     return el;
                 };
 
@@ -827,7 +839,7 @@
                         textToCopy += `------------------------------\n${awayTeamInfo.name} vs. ${homeTeamInfo.name}\n`;
                         card.querySelectorAll('.positive-ev').forEach(resultEl => {
                             const winnerName = resultEl.querySelector('strong').textContent;
-                            const evText = resultEl.querySelector('span:last-child').textContent;
+                            const evText = resultEl.querySelector('span.font-bold').textContent;
                             
                             let probabilityText = '';
                             if(winnerName.includes(awayTeamInfo.name)) {
@@ -915,6 +927,11 @@
                 }
                 
                 // Instead of copying, show the modal
+                parlayRationaleContainer.style.display = 'none';
+                parlayRationaleContainer.innerHTML = '';
+                generateRationaleBtn.style.display = 'block';
+                generateRationaleBtn.disabled = false;
+                generateRationaleBtn.innerHTML = '✨ Generate Parlay Rationale';
                 parlayListContainer.innerHTML = '';
                 primaryPicks.slice(0, PARLAY_CAP).forEach(pick => {
                     const pickElement = document.createElement('div');
@@ -991,6 +1008,247 @@
                 setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
             }
             
+            async function getGameAnalysis(button) {
+                 if (!geminiApiKey || geminiApiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+                    showError("Please add your Gemini API Key to the `index.html` file to use this feature.");
+                    return;
+                }
+
+                const { gameIndex, awayTeam, homeTeam, sport } = button.dataset;
+                const analysisContainer = document.getElementById(`game-${gameIndex}-analysis-container`);
+
+                button.disabled = true;
+                button.innerHTML = `
+                    <svg class="spinner h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Analyzing...
+                `;
+                analysisContainer.style.display = 'block';
+                analysisContainer.innerHTML = '<canvas id="chart-' + gameIndex + '"></canvas>';
+                const ctx = document.getElementById('chart-' + gameIndex).getContext('2d');
+                
+                const prompt = `Provide a comparative analysis for the upcoming ${sport} game between ${awayTeam} (away) and ${homeTeam} (home). Rate each team from 1 (weak) to 10 (strong) in four distinct categories: "Offense", "Defense", "Recent Form", and "Injury Impact" (a lower score means more negative impact from injuries).`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "away_team_ratings": { 
+                                    type: "OBJECT",
+                                    properties: {
+                                        "offense": { "type": "NUMBER" }, "defense": { "type": "NUMBER" }, "recent_form": { "type": "NUMBER" }, "injury_impact": { "type": "NUMBER" }
+                                    }
+                                },
+                                "home_team_ratings": {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "offense": { "type": "NUMBER" }, "defense": { "type": "NUMBER" }, "recent_form": { "type": "NUMBER" }, "injury_impact": { "type": "NUMBER" }
+                                    }
+                                }
+                            },
+                        }
+                    }
+                };
+                
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API Error: ${errorBody.error.message}`);
+                    }
+
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (jsonText) {
+                        const analysis = JSON.parse(jsonText);
+                        const awayRatings = analysis.away_team_ratings;
+                        const homeRatings = analysis.home_team_ratings;
+                        const labels = ['Offense', 'Defense', 'Recent Form', 'Injury Impact'];
+                        const awayData = [awayRatings.offense, awayRatings.defense, awayRatings.recent_form, awayRatings.injury_impact];
+                        const homeData = [homeRatings.offense, homeRatings.defense, homeRatings.recent_form, homeRatings.injury_impact];
+
+                         new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: awayTeam,
+                                    data: awayData,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                    borderColor: 'rgba(59, 130, 246, 1)',
+                                    borderWidth: 1
+                                }, {
+                                    label: homeTeam,
+                                    data: homeData,
+                                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                    borderColor: 'rgba(239, 68, 68, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {
+                                        beginAtZero: true,
+                                        max: 10,
+                                        grid: { color: 'rgba(128, 128, 128, 0.1)' },
+                                        ticks: {
+                                            color: document.documentElement.classList.contains('dark') ? '#64748b' : '#475569',
+                                        }
+                                    },
+                                    y: {
+                                        grid: { display: false },
+                                        ticks: {
+                                            font: { size: 12, weight: 'bold' },
+                                            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a'
+                                        }
+                                    },
+                                    tooltip: {
+                                        enabled: true
+                                    },
+                                    // Custom plugin to draw stars
+                                    'star-plugin': {
+                                        afterDatasetsDraw: (chart) => {
+                                            const { ctx, data, scales: { x, y } } = chart;
+                                            ctx.save();
+                                            ctx.font = 'bold 20px Arial';
+                                            ctx.fillStyle = '#facc15'; // gold color
+                                            
+                                            data.datasets[0].data.forEach((awayScore, index) => {
+                                                const homeScore = data.datasets[1].data[index];
+                                                let winnerX, winnerY;
+                                                const yPos = y.getPixelForTick(index);
+
+                                                if (awayScore > homeScore) {
+                                                    winnerX = x.getPixelForValue(awayScore) + 10;
+                                                    winnerY = yPos - (chart.getDatasetMeta(0).barThickness / 2) + 7;
+                                                } else if (homeScore > awayScore) {
+                                                    winnerX = x.getPixelForValue(homeScore) + 10;
+                                                    winnerY = yPos + (chart.getDatasetMeta(1).barThickness / 2) + 7;
+                                                } else {
+                                                    return; // No star if it's a tie
+                                                }
+                                                ctx.fillText('⭐', winnerX, winnerY);
+                                            });
+                                            ctx.restore();
+                                        }
+                                    }
+                                },
+                                layout: {
+                                     padding: {
+                                        right: 30 // Add padding to make space for the star
+                                    }
+                                }
+                            },
+                            plugins: [{
+                                id: 'star-plugin',
+                                afterDatasetsDraw: (chart) => {
+                                    const { ctx, data, scales: { x, y } } = chart;
+                                    ctx.save();
+                                    ctx.font = '24px Arial';
+                                    ctx.fillStyle = '#f59e0b'; // amber-500
+                                    
+                                    data.datasets[0].data.forEach((awayScore, index) => {
+                                        const homeScore = data.datasets[1].data[index];
+                                        if (awayScore === homeScore) return;
+
+                                        const meta0 = chart.getDatasetMeta(0);
+                                        const meta1 = chart.getDatasetMeta(1);
+
+                                        if (awayScore > homeScore) {
+                                            const bar = meta0.data[index];
+                                            ctx.fillText('⭐', bar.x + 5, bar.y + 8);
+                                        } else {
+                                            const bar = meta1.data[index];
+                                            ctx.fillText('⭐', bar.x + 5, bar.y + 8);
+                                        }
+                                    });
+                                    ctx.restore();
+                                }
+                            }]
+                        });
+
+
+                    } else {
+                        throw new Error("No content received from AI.");
+                    }
+                } catch (err) {
+                    console.error("Gemini API Error:", err);
+                    analysisContainer.innerHTML = `Sorry, the AI analysis failed. ${err.message}`;
+                } finally {
+                    button.style.display = 'none'; // Hide button after it's been used
+                }
+            }
+            
+            async function getParlayRationale(picks) {
+                 if (!geminiApiKey || geminiApiKey === 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM') {
+                    parlayRationaleContainer.style.display = 'block';
+                    parlayRationaleContainer.innerHTML = 'Please add your Gemini API key to the `index.html` file to use this feature.';
+                    return;
+                }
+
+                generateRationaleBtn.disabled = true;
+                generateRationaleBtn.innerHTML = `
+                    <svg class="spinner h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Generating...
+                `;
+                parlayRationaleContainer.style.display = 'block';
+                parlayRationaleContainer.innerHTML = 'Crafting a compelling argument for your picks...';
+
+                const picksString = picks.map(p => `- ${p.pick} in the ${p.matchup} game. Justification: ${p.justification}`).join('\n');
+                const prompt = `Act as a sharp, confident sports betting analyst. I have created a parlay with the following picks:\n\n${picksString}\n\nWrite a short, compelling paragraph (3-4 sentences) that provides a rationale for this parlay. Weave the picks together into a coherent strategy. Make it sound smart and persuasive.`;
+
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
+                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API Error: ${errorBody.error.message}`);
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        parlayRationaleContainer.innerHTML = text.replace(/\n/g, '<br>');
+                        parlayRationaleContainer.dataset.rationale = text;
+                    } else {
+                        throw new Error("No content received from AI.");
+                    }
+                } catch (err) {
+                    console.error("Gemini API Error:", err);
+                    parlayRationaleContainer.innerHTML = `Sorry, the AI rationale failed. ${err.message}`;
+                } finally {
+                    generateRationaleBtn.style.display = 'none'; // Hide after use
+                }
+            }
+
+
             function attachEventListeners() {
                 gameListContainer.addEventListener('input', e => {
                     if (e.target.classList.contains('prob-slider')) {
@@ -1013,6 +1271,10 @@
                 gameListContainer.addEventListener('click', e => {
                     if (e.target.closest('.reset-prob-btn')) { handleResetProbability(e.target.closest('.reset-prob-btn')); }
                     if (e.target.closest('.fifty-fifty-btn')) { handle50PercentClick(e.target.closest('.fifty-fifty-btn')); }
+                    const analysisBtn = e.target.closest('.get-analysis-btn');
+                    if (analysisBtn) {
+                        getGameAnalysis(analysisBtn);
+                    }
                 });
             }
 
@@ -1054,6 +1316,11 @@
                     let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
                     htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Strategic Parlay Picks (${picks.length} Games)</h3>`;
                     
+                    const rationaleText = parlayRationaleContainer.dataset.rationale;
+                    if (rationaleText) {
+                        htmlToCopy += `<p style="font-size: 14px; margin-bottom: 12px; border-left: 3px solid ${colors.accent}; padding-left: 12px; font-style: italic;">${rationaleText.replace(/\n/g, '<br>')}</p>`;
+                    }
+
                     picks.forEach(pick => {
                         htmlToCopy += `
                             <div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};">
@@ -1071,8 +1338,16 @@
                 }
                 setTimeout(hideParlayModal, 500); // Give time for "Copied!" text to show
             });
+
+            generateRationaleBtn.addEventListener('click', () => {
+                const picks = JSON.parse(parlayModal.dataset.picks || '[]');
+                if (picks.length > 0) {
+                    getParlayRationale(picks);
+                }
+            });
         });
     </script>
 </body>
 </html>
+
 
