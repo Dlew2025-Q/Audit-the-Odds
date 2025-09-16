@@ -167,7 +167,26 @@
             <div id="errorState" class="hidden text-center p-4 rounded-lg" style="background-color: var(--negative-bg); color: var(--negative-text);"></div>
             
              <div id="main-content-area" class="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-                <div id="results-area" class="hidden lg:col-span-2">
+                <!-- Bet Slip Area -->
+                <div id="bet-slip-area" class="hidden lg:order-last lg:col-span-1 lg:sticky lg:top-32 lg:self-start mt-8 lg:mt-0">
+                    <div class="p-4 rounded-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
+                        <h3 class="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
+                        <div id="bet-slip-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
+                            <!-- Selected bets will appear here -->
+                        </div>
+                        <div id="bet-slip-controls" class="mt-4 flex flex-col gap-2 hidden">
+                            <button id="copy-slip-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center justify-center transition-colors" style="background-color: var(--accent-color); color: white;">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                <span id="copy-slip-btn-text">Copy Slip</span>
+                            </button>
+                            <button id="combo-analysis-btn" class="utility-btn text-sm w-full" disabled>Round Robin Analysis</button>
+                            <button id="clear-slip-btn" class="utility-btn text-sm w-full">Clear Slip</button>
+                        </div>
+                         <p id="empty-slip-message" class="text-center text-sm text-secondary py-4">Click on a bet to add it to your slip.</p>
+                    </div>
+                </div>
+
+                <div id="results-area" class="hidden lg:order-first lg:col-span-2">
                      <!-- Summary Dashboard -->
                     <div id="summary-dashboard" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center"></div>
 
@@ -218,7 +237,7 @@
                 </div>
 
                 <!-- Bet Slip Area -->
-                <div id="bet-slip-area" class="hidden lg:block lg:col-span-1 sticky top-32 self-start">
+                <div id="bet-slip-area" class="hidden lg:col-span-1 lg:sticky lg:top-32 lg:self-start mt-8 lg:mt-0">
                     <div class="p-4 rounded-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         <h3 class="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
                         <div id="bet-slip-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
@@ -295,22 +314,32 @@
                 </button>
             </div>
             <div class="space-y-4">
-               <p class="text-sm text-secondary">This tool estimates the number of wins you need for different round robin combinations to become profitable, based on the <strong>average odds</strong> of the bets in your slip. This is an estimate, as actual payouts depend on which specific games you win.</p>
-               <div class="flex items-center space-x-4 p-3 rounded-lg" style="background-color: var(--input-bg);">
-                   <div class="flex-1">
-                       <label for="wager-per-combo" class="block text-sm font-medium">Wager per Combination ($)</label>
-                       <input type="number" id="wager-per-combo" value="1" min="0.01" step="0.01" class="w-full p-2 rounded-md mt-1" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
-                   </div>
-                   <div class="text-center">
-                        <div class="text-sm font-medium">Total Games</div>
-                        <div id="combo-total-games" class="text-2xl font-bold">0</div>
-                   </div>
-                   <div class="text-center">
-                        <div class="text-sm font-medium">Average Odds</div>
-                        <div id="combo-avg-odds" class="text-2xl font-bold">0.00</div>
-                   </div>
-               </div>
-               <div id="combo-results-container" class="max-h-80 overflow-y-auto pr-2">
+               <p class="text-sm text-secondary">This tool estimates the number of wins you need for different round robin combinations to become profitable. It distributes your total bet amount evenly across all possible combinations.</p>
+               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 rounded-lg" style="background-color: var(--input-bg);">
+                    <div class="md:col-span-1">
+                        <label for="total-bet-amount" class="block text-sm font-medium">Total Bet Amount ($)</label>
+                        <input type="number" id="total-bet-amount" value="100" min="1" step="1" class="w-full p-2 rounded-md mt-1" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="flex justify-around md:col-span-2 items-center text-center pt-2 md:pt-0">
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Total Games</div>
+                            <div id="combo-total-games" class="text-xl md:text-2xl font-bold">0</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Total # Bets</div>
+                            <div id="combo-total-bets" class="text-xl md:text-2xl font-bold">0</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Wager / Bet</div>
+                            <div id="combo-wager-per-bet" class="text-xl md:text-2xl font-bold">$0.00</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Avg. Odds</div>
+                            <div id="combo-avg-odds" class="text-xl md:text-2xl font-bold">0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="combo-results-container" class="max-h-80 overflow-y-auto pr-2">
                    <!-- Results table will be generated here -->
                </div>
             </div>
@@ -368,10 +397,12 @@
             const comboModal = document.getElementById('combo-modal');
             const comboModalContent = document.getElementById('combo-modal-content');
             const closeComboModalBtn = document.getElementById('close-combo-modal');
-            const wagerPerComboInput = document.getElementById('wager-per-combo');
+            const totalBetAmountInput = document.getElementById('total-bet-amount');
             const comboTotalGames = document.getElementById('combo-total-games');
             const comboAvgOdds = document.getElementById('combo-avg-odds');
             const comboResultsContainer = document.getElementById('combo-results-container');
+            const comboTotalBets = document.getElementById('combo-total-bets');
+            const comboWagerPerBet = document.getElementById('combo-wager-per-bet');
 
 
             let ALL_SPORTS_DATA = [];
@@ -495,17 +526,6 @@
             // --- CORE LOGIC & CALCULATIONS ---
             const calculateEV = (winProb, decimalOdds) => (winProb * (decimalOdds - 1)) - (1 - winProb);
             
-            const factorialCache = [1];
-            function factorial(n) {
-                if (n < 0) return NaN;
-                if (n >= factorialCache.length) {
-                    for (let i = factorialCache.length; i <= n; i++) {
-                        factorialCache[i] = factorialCache[i - 1] * i;
-                    }
-                }
-                return factorialCache[n];
-            }
-
             function combinations(n, k) {
                 if (k < 0 || k > n) {
                     return 0;
@@ -903,6 +923,7 @@
                     el.classList.add('bet-option', 'cursor-pointer', 'transition-all', 'hover:ring-2', 'hover:ring-offset-2');
                     el.dataset.betLabel = label;
                     el.dataset.betOdds = odds;
+                    el.dataset.ev = ev; // Store raw EV value
 
                     return el;
                 };
@@ -967,6 +988,7 @@
                     emptySlipMessage.classList.add('hidden');
                     betSlipControls.classList.remove('hidden');
                 } else {
+                    betSlipArea.classList.add('hidden'); // Fix: Ensure slip is hidden when empty
                     emptySlipMessage.classList.remove('hidden');
                     betSlipControls.classList.add('hidden');
                 }
@@ -1026,69 +1048,136 @@
                 renderBetSlip();
             }
 
+            function handleBetClick(target) {
+                const gameCard = target.closest('.game-card');
+                const gameIndex = gameCard.dataset.gameIndex;
+                const { betLabel, betOdds } = target.dataset;
+                const betId = `${gameIndex}-${betLabel}`;
+
+                // Deselect any other bet from the same game
+                const existingBetIndex = betSlip.findIndex(b => b.gameIndex === gameIndex);
+                if (existingBetIndex > -1) {
+                    const oldBet = betSlip[existingBetIndex];
+                    // If it's not the same bet, deselect the old one
+                    if(oldBet.id !== betId) {
+                          const oldBetEl = gameCard.querySelector(`.bet-option[data-bet-label="${CSS.escape(oldBet.label)}"]`);
+                          if(oldBetEl) oldBetEl.style.borderColor = 'transparent';
+                    }
+                    betSlip.splice(existingBetIndex, 1);
+                }
+
+                // If the clicked bet was the one already selected, we just remove it (done above)
+                // Otherwise, add the new one
+                const isAlreadySelected = target.style.borderColor !== 'transparent' && target.style.borderColor !== '';
+                if (!isAlreadySelected) {
+                     if (betSlip.length >= 20) {
+                        // Here we could add a user-facing message like a toast notification
+                        console.warn("Bet slip is full. Maximum 20 bets allowed.");
+                        return; // Prevent adding more bets
+                     }
+                     betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds) });
+                     target.style.borderColor = 'var(--accent-color)';
+                } else {
+                     target.style.borderColor = 'transparent';
+                }
+
+                renderBetSlip();
+            }
+
             function handleAddBestEVBets() {
                 // 1. Clear existing slip
                 betSlip = [];
-                document.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
-
-                // 2. Iterate through each game card
+                // Correctly clear highlights from ALL cards, not just visible ones
                 gameCardElements.forEach(card => {
-                    // Skip if there's no positive EV opportunity in this game
+                    card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
+                });
+
+                // 2. Gather all potential best +EV bets from each game
+                const potentialBets = [];
+                gameCardElements.forEach(card => {
                     if (card.dataset.positiveEv !== 'true') return;
 
                     let bestBetElForGame = null;
                     let maxEvForGame = -Infinity;
 
-                    // Find the best bet in this specific card by checking all its result displays
                     card.querySelectorAll('.result-display').forEach(betEl => {
-                        const evText = betEl.querySelector('span.font-bold').textContent; // e.g., "+5.25%" or "-10.50%"
-                        const currentEv = parseFloat(evText.replace('%', ''));
-
+                        const currentEv = parseFloat(betEl.dataset.ev); // Read raw EV from data attribute
                         if (currentEv > maxEvForGame) {
                             maxEvForGame = currentEv;
                             bestBetElForGame = betEl;
                         }
                     });
 
-                    // If a best positive bet was found, add it to the slip
                     if (bestBetElForGame && maxEvForGame > 0) {
                         const gameIndex = card.dataset.gameIndex;
-                        const { betLabel, betOdds } = bestBetElForGame.dataset;
+                        const { betLabel, betOdds, ev } = bestBetElForGame.dataset;
                         const betId = `${gameIndex}-${betLabel}`;
                         
-                        betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds) });
-                        
-                        // Visually select it on the card
-                        bestBetElForGame.style.borderColor = 'var(--accent-color)';
+                        potentialBets.push({ 
+                            id: betId, 
+                            gameIndex, 
+                            label: betLabel, 
+                            odds: parseFloat(betOdds),
+                            ev: parseFloat(ev),
+                            element: bestBetElForGame // Keep a reference to the element for highlighting
+                        });
                     }
                 });
+                
+                // 3. Sort all potential bets by EV and take the top 20
+                potentialBets.sort((a, b) => b.ev - a.ev);
+                const topBets = potentialBets.slice(0, 20);
 
-                // 3. Render the updated slip UI
+                // 4. Populate the slip with the top bets and highlight their elements
+                topBets.forEach(bet => {
+                    betSlip.push({
+                        id: bet.id,
+                        gameIndex: bet.gameIndex,
+                        label: bet.label,
+                        odds: bet.odds
+                    });
+                    bet.element.style.borderColor = 'var(--accent-color)';
+                });
+
+                // 5. Render the updated slip UI
                 renderBetSlip();
             }
 
             function calculateAndDisplayComboAnalysis() {
                 const numGames = betSlip.length;
+                const maxComboSize = Math.min(10, numGames);
+                
                 comboTotalGames.textContent = numGames;
                 
                 if (numGames < 2) {
-                    comboAvgOdds.textContent = '0.00'
+                    comboAvgOdds.textContent = '0.00';
+                    comboTotalBets.textContent = '0';
+                    comboWagerPerBet.textContent = '$0.00';
                     comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets in your slip to analyze round robins.</p>`;
                     return;
                 }
 
-                const wagerPerCombo = parseFloat(wagerPerComboInput.value) || 1;
+                const totalBetAmount = parseFloat(totalBetAmountInput.value) || 100;
                 const totalOdds = betSlip.reduce((sum, bet) => sum + bet.odds, 0);
                 const avgOdds = totalOdds / numGames;
 
+                let totalNumberOfBets = 0;
+                for (let k = 2; k <= maxComboSize; k++) {
+                    totalNumberOfBets += combinations(numGames, k);
+                }
+
+                const wagerPerBet = totalNumberOfBets > 0 ? totalBetAmount / totalNumberOfBets : 0;
+                
                 comboAvgOdds.textContent = avgOdds.toFixed(2);
+                comboTotalBets.textContent = totalNumberOfBets;
+                comboWagerPerBet.textContent = `$${wagerPerBet.toFixed(2)}`;
 
                 let resultsHtml = `
                     <table class="w-full text-sm text-left">
                         <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
                             <tr class="border-b" style="border-color: var(--border-color);">
                                 <th class="p-2 font-semibold">Combo Size</th>
-                                <th class="p-2 font-semibold text-center">Total Cost</th>
+                                <th class="p-2 font-semibold text-center">Cost for Type</th>
                                 <th class="p-2 font-semibold text-center">Wins for Profit</th>
                                 <th class="p-2 font-semibold text-center">Profit at Break-Even</th>
                             </tr>
@@ -1096,22 +1185,21 @@
                         <tbody>
                 `;
 
-                const maxComboSize = Math.min(10, numGames);
-
                 for (let k = 2; k <= maxComboSize; k++) {
                     const numCombos = combinations(numGames, k);
-                    const totalCost = numCombos * wagerPerCombo;
-                    const payoutPerCombo = (avgOdds ** k) * wagerPerCombo;
+                    const costForThisComboSize = numCombos * wagerPerBet;
+                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
 
                     let winsNeeded = -1;
                     let profitAtBreakEven = 0;
 
+                    // Find the number of wins (w) where the payout for this combo type exceeds the cost for this combo type
                     for (let w = k; w <= numGames; w++) {
                         const winningCombos = combinations(w, k);
-                        const totalWinnings = winningCombos * payoutPerCombo;
-                        if (totalWinnings > totalCost) {
+                        const totalWinnings = winningCombos * payoutPerWinningCombo;
+                        if (totalWinnings > costForThisComboSize) {
                             winsNeeded = w;
-                            profitAtBreakEven = totalWinnings - totalCost;
+                            profitAtBreakEven = totalWinnings - costForThisComboSize;
                             break;
                         }
                     }
@@ -1119,7 +1207,7 @@
                     resultsHtml += `
                         <tr class="border-b" style="border-color: var(--border-color);">
                             <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
-                            <td class="p-2 text-center">$${totalCost.toFixed(2)}</td>
+                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
                             <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
                                 ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'Not Possible'}
                             </td>
@@ -1638,8 +1726,10 @@
              // Bet Slip Listeners
             clearSlipBtn.addEventListener('click', () => {
                 betSlip = [];
-                // remove all highlights
-                document.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
+                // remove all highlights from all card elements, not just visible ones
+                gameCardElements.forEach(card => {
+                    card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
+                });
                 renderBetSlip();
             });
 
@@ -1703,13 +1793,17 @@
             };
 
             closeComboModalBtn.addEventListener('click', hideComboModal);
-            wagerPerComboInput.addEventListener('input', calculateAndDisplayComboAnalysis);
+            totalBetAmountInput.addEventListener('input', calculateAndDisplayComboAnalysis);
 
 
         });
     </script>
 </body>
 </html>
+
+
+
+
 
 
 
