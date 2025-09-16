@@ -301,7 +301,6 @@
             // --- Hardcoded API Keys ---
             const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
  			const geminiApiKey = 'AIzaSyBh1oI8mjkB495tVuKFOanqeFJGdmZ2bgM';
-            const GEMINI_API_KEY_PLACEHOLDER = 'YOUR_GEMINI_API_KEY_HERE';
 
             // --- THEME SWITCHER ---
             const applyTheme = (theme) => {
@@ -404,14 +403,15 @@
                     const markets = 'h2h,spreads,totals';
                     const oddsFormat = 'decimal';
 
-                    // Set the time window for the next 24 hours
+                    // Set the time window from now to the next 24 hours
                     const now = new Date();
                     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                    // Format the date to YYYY-MM-DDTHH:mm:ssZ to match API docs precisely
+                    // Format the dates to YYYY-MM-DDTHH:mm:ssZ to match API docs precisely
+                    const commenceTimeFrom = now.toISOString().slice(0, 19) + 'Z';
                     const commenceTimeTo = tomorrow.toISOString().slice(0, 19) + 'Z';
 
                     const promises = activeSportsToFetch.map(sportKey => {
-                        const apiUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds?apiKey=${oddsApiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}&commenceTimeTo=${commenceTimeTo}`;
+                        const apiUrl = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds?apiKey=${oddsApiKey}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}&commenceTimeFrom=${commenceTimeFrom}&commenceTimeTo=${commenceTimeTo}`;
                         return fetch(apiUrl);
                     });
 
@@ -1009,7 +1009,7 @@
             }
             
             async function getGameAnalysis(button) {
-                 if (!geminiApiKey || geminiApiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+                 if (!geminiApiKey || geminiApiKey === GEMINI_API_KEY_PLACEHOLDER) {
                     showError("Please add your Gemini API Key to the `index.html` file to use this feature.");
                     return;
                 }
