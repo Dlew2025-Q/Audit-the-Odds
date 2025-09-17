@@ -160,7 +160,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
                 </button>
                 <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v6.4</span></h1>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v6.5</span></h1>
                     <p class="text-lg text-secondary">Find value by analyzing live betting lines.</p>
                 </div>
             </div>
@@ -291,8 +291,8 @@
                     </div>
                     <div class="flex justify-around md:col-span-1 items-center text-center pt-2 md:pt-0">
                         <div>
-                            <div class="text-sm font-medium text-secondary">Total Games</div>
-                            <div id="combo-total-games" class="text-xl md:text-2xl font-bold">0</div>
+                            <label for="combo-total-games-input" class="block text-sm font-medium text-secondary">Total Games</label>
+                            <input type="number" id="combo-total-games-input" min="2" class="w-24 p-1 rounded-md mt-1 text-center font-bold text-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         </div>
                         <div>
                             <div class="text-sm font-medium text-secondary">Avg. Odds</div>
@@ -325,8 +325,8 @@
                     </div>
                     <div class="flex justify-around md:col-span-1 items-center text-center pt-2 md:pt-0">
                         <div>
-                            <div class="text-sm font-medium text-secondary">Total Games</div>
-                            <div id="strategy-combo-total-games" class="text-xl md:text-2xl font-bold">0</div>
+                            <label for="strategy-combo-total-games-input" class="block text-sm font-medium text-secondary">Total Games</label>
+                            <input type="number" id="strategy-combo-total-games-input" min="2" class="w-24 p-1 rounded-md mt-1 text-center font-bold text-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         </div>
                         <div>
                             <div class="text-sm font-medium text-secondary">Avg. Odds</div>
@@ -406,7 +406,7 @@
             const comboModalContent = document.getElementById('combo-modal-content');
             const closeComboModalBtn = document.getElementById('close-combo-modal');
             const wagerPerBetInput = document.getElementById('wager-per-bet-input');
-            const comboTotalGames = document.getElementById('combo-total-games');
+            const comboTotalGamesInput = document.getElementById('combo-total-games-input');
             const comboAvgOdds = document.getElementById('combo-avg-odds');
             const comboResultsContainer = document.getElementById('combo-results-container');
 
@@ -415,7 +415,7 @@
             const strategyComboModalContent = document.getElementById('strategy-combo-modal-content');
             const closeStrategyComboModalBtn = document.getElementById('close-strategy-combo-modal');
             const strategyWagerPerBetInput = document.getElementById('strategy-wager-per-bet-input');
-            const strategyComboTotalGames = document.getElementById('strategy-combo-total-games');
+            const strategyComboTotalGamesInput = document.getElementById('strategy-combo-total-games-input');
             const strategyComboAvgOdds = document.getElementById('strategy-combo-avg-odds');
             const strategyComboResultsContainer = document.getElementById('strategy-combo-results-container');
             const copyStrategyParlayBtn = document.getElementById('copy-strategy-parlay-btn');
@@ -1123,20 +1123,18 @@
             }
 
             function calculateAndDisplayComboAnalysis() {
-                const numGames = betSlip.length;
+                const numGames = parseInt(comboTotalGamesInput.value) || betSlip.length;
                 const maxComboSize = Math.min(15, numGames);
-                
-                comboTotalGames.textContent = numGames;
                 
                 if (numGames < 2) {
                     comboAvgOdds.textContent = '0.00';
-                    comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets in your slip to analyze round robins.</p>`;
+                    comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 games to analyze round robins.</p>`;
                     return;
                 }
 
                 const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
                 const totalOdds = betSlip.reduce((sum, bet) => sum + bet.odds, 0);
-                const avgOdds = totalOdds / numGames;
+                const avgOdds = totalOdds / betSlip.length;
 
                 comboAvgOdds.textContent = avgOdds.toFixed(2);
                 
@@ -1223,21 +1221,11 @@
                     </table>`;
                 comboResultsContainer.innerHTML = resultsHtml;
                 updateComboTotals(); // Initial calculation
-
-                // Add listener for "Select All"
-                document.getElementById('select-all-combos').addEventListener('change', (e) => {
-                    comboResultsContainer.querySelectorAll('.combo-checkbox').forEach(box => {
-                        box.checked = e.target.checked;
-                    });
-                    updateComboTotals();
-                });
             }
 
             function calculateAndDisplayStrategyComboAnalysis(bets) {
-                const numGames = bets.length;
+                const numGames = parseInt(strategyComboTotalGamesInput.value) || bets.length;
                 const maxComboSize = Math.min(15, numGames);
-                
-                strategyComboTotalGames.textContent = numGames;
                 
                 if (numGames < 2) {
                     strategyComboAvgOdds.textContent = '0.00';
@@ -1247,7 +1235,7 @@
 
                 const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
                 const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
-                const avgOdds = totalOdds / numGames;
+                const avgOdds = totalOdds / bets.length;
 
                 strategyComboAvgOdds.textContent = avgOdds.toFixed(2);
 
@@ -1554,6 +1542,7 @@
                     return;
                 }
                 
+                strategyComboTotalGamesInput.value = currentStrategyBets.length;
                 showStrategyComboAnalysis();
             }
 
@@ -1809,6 +1798,7 @@
             // Bet Slip Combo Modal Listeners
             comboAnalysisBtn.addEventListener('click', () => {
                 if (betSlip.length >= 2) {
+                    comboTotalGamesInput.value = betSlip.length;
                     comboModal.classList.remove('hidden');
                     setTimeout(() => {
                         comboModal.classList.remove('opacity-0');
@@ -1824,6 +1814,7 @@
             };
             closeComboModalBtn.addEventListener('click', hideComboModal);
             wagerPerBetInput.addEventListener('input', calculateAndDisplayComboAnalysis);
+            comboTotalGamesInput.addEventListener('input', calculateAndDisplayComboAnalysis);
             
             comboResultsContainer.addEventListener('change', (e) => {
                 if (e.target.matches('#select-all-combos')) {
@@ -1834,11 +1825,11 @@
                 // Always update totals on any change within the container
                 updateComboTotals();
             });
-
-
+            
             // Strategy Combo Modal Listeners
             closeStrategyComboModalBtn.addEventListener('click', hideStrategyComboModal);
             strategyWagerPerBetInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
+            strategyComboTotalGamesInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
             copyStrategyParlayBtn.addEventListener('click', handleCopyStrategyParlay);
 
             strategyComboResultsContainer.addEventListener('change', (e) => {
@@ -1862,6 +1853,4 @@
     </script>
 </body>
 </html>
-
-
 
