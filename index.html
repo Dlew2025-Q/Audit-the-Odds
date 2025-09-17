@@ -119,8 +119,8 @@
         .utility-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Modal Styles */
-        #help-modal, #parlay-modal, #combo-modal { transition: opacity 0.3s; }
-        #help-modal-content, #parlay-modal-content, #combo-modal-content { transition: transform 0.3s; }
+        #help-modal, #combo-modal, #strategy-combo-modal { transition: opacity 0.3s; }
+        #help-modal-content, #combo-modal-content, #strategy-combo-modal-content { transition: transform 0.3s; }
 
         /* Summary Dashboard */
         .stat-card {
@@ -197,7 +197,7 @@
                         <div class="text-center">
                             <button id="generate-parlay-btn" class="text-base font-semibold py-2 px-6 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed mx-auto" style="background-color: #16a34a; color: white;" disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span id="parlay-btn-text">Apply Strategy & Copy Parlay</span>
+                                <span id="parlay-btn-text">Analyze Parlay Strategy</span>
                             </button>
                         </div>
                     </div>
@@ -256,40 +256,12 @@
             </div>
         </div>
     </div>
-    <!-- Parlay Modal -->
-    <div id="parlay-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4 opacity-0">
-        <div id="parlay-modal-content" class="w-full max-w-lg p-6 md:p-8 rounded-2xl shadow-2xl transform scale-95" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-bold">Generated Parlay Picks</h3>
-                <button id="close-parlay-modal" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            <div id="parlay-list-container" class="space-y-3 max-h-80 overflow-y-auto pr-2">
-                <!-- Parlay picks will be inserted here -->
-            </div>
-            <div id="parlay-rationale-section" class="mt-4">
-                <button id="generate-rationale-btn" class="utility-btn text-sm w-full flex items-center justify-center">
-                    ✨ Generate Parlay Rationale
-                </button>
-                <div id="parlay-rationale-container" class="text-sm text-secondary mt-3 p-3 rounded-lg" style="background-color: var(--input-bg); display: none;">
-                    <!-- AI rationale will be loaded here -->
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end space-x-3">
-                 <button id="cancel-parlay-btn" class="utility-btn text-sm py-2 px-4 rounded-lg">Cancel</button>
-                 <button id="copy-parlay-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors" style="background-color: var(--accent-color); color: white;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                    <span id="copy-parlay-btn-text">Copy & Close</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    <!-- Round Robin Combo Modal -->
+    
+    <!-- Round Robin Combo Modal (For Bet Slip) -->
     <div id="combo-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4 opacity-0">
         <div id="combo-modal-content" class="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl transform scale-95" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-bold">Round Robin Profitability Analysis</h3>
+                <h3 class="text-2xl font-bold">Bet Slip - Round Robin Analysis</h3>
                 <button id="close-combo-modal" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -314,6 +286,46 @@
                 </div>
                 <div id="combo-results-container" class="max-h-80 overflow-y-auto pr-2">
                    <!-- Results table will be generated here -->
+               </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Round Robin Combo Modal (For Strategy Parlay) -->
+    <div id="strategy-combo-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4 opacity-0">
+        <div id="strategy-combo-modal-content" class="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl transform scale-95" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">Strategy Parlay - Round Robin Analysis</h3>
+                <button id="close-strategy-combo-modal" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+               <p class="text-sm text-secondary">This tool estimates the number of wins you need for different round robin combinations to become profitable based on a flat wager per bet, using the picks generated by your selected strategy.</p>
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg" style="background-color: var(--input-bg);">
+                    <div class="md:col-span-1">
+                        <label for="strategy-wager-per-bet-input" class="block text-sm font-medium">Wager per Bet ($)</label>
+                        <input type="number" id="strategy-wager-per-bet-input" value="1" min="0.01" step="0.01" class="w-full p-2 rounded-md mt-1" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="flex justify-around md:col-span-1 items-center text-center pt-2 md:pt-0">
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Total Games</div>
+                            <div id="strategy-combo-total-games" class="text-xl md:text-2xl font-bold">0</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-secondary">Avg. Odds</div>
+                            <div id="strategy-combo-avg-odds" class="text-xl md:text-2xl font-bold">0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="strategy-combo-results-container" class="max-h-80 overflow-y-auto pr-2">
+                   <!-- Results table will be generated here -->
+               </div>
+               <div class="mt-6 flex justify-end space-x-3">
+                    <button id="copy-strategy-parlay-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors" style="background-color: var(--accent-color); color: white;">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                       <span id="copy-strategy-parlay-btn-text">Copy Parlay & Close</span>
+                   </button>
                </div>
             </div>
         </div>
@@ -348,15 +360,7 @@
             const helpModalContent = document.getElementById('help-modal-content');
             const closeHelpModalBtn = document.getElementById('close-help-modal');
             const summaryDashboard = document.getElementById('summary-dashboard');
-            const parlayModal = document.getElementById('parlay-modal');
-            const parlayModalContent = document.getElementById('parlay-modal-content');
-            const closeParlayModalBtn = document.getElementById('close-parlay-modal');
-            const cancelParlayBtn = document.getElementById('cancel-parlay-btn');
-            const parlayListContainer = document.getElementById('parlay-list-container');
-            const copyParlayBtn = document.getElementById('copy-parlay-btn');
-            const copyParlayBtnText = document.getElementById('copy-parlay-btn-text');
-            const generateRationaleBtn = document.getElementById('generate-rationale-btn');
-            const parlayRationaleContainer = document.getElementById('parlay-rationale-container');
+            
             const betSlipArea = document.getElementById('bet-slip-area');
             const betSlipList = document.getElementById('bet-slip-list');
             const betSlipControls = document.getElementById('bet-slip-controls');
@@ -365,7 +369,7 @@
             const copySlipBtnText = document.getElementById('copy-slip-btn-text');
             const clearSlipBtn = document.getElementById('clear-slip-btn');
             
-            // New Combo Modal Elements
+            // Bet Slip Combo Modal Elements
             const comboAnalysisBtn = document.getElementById('combo-analysis-btn');
             const comboModal = document.getElementById('combo-modal');
             const comboModalContent = document.getElementById('combo-modal-content');
@@ -374,6 +378,18 @@
             const comboTotalGames = document.getElementById('combo-total-games');
             const comboAvgOdds = document.getElementById('combo-avg-odds');
             const comboResultsContainer = document.getElementById('combo-results-container');
+
+            // Strategy Combo Modal Elements
+            const strategyComboModal = document.getElementById('strategy-combo-modal');
+            const strategyComboModalContent = document.getElementById('strategy-combo-modal-content');
+            const closeStrategyComboModalBtn = document.getElementById('close-strategy-combo-modal');
+            const strategyWagerPerBetInput = document.getElementById('strategy-wager-per-bet-input');
+            const strategyComboTotalGames = document.getElementById('strategy-combo-total-games');
+            const strategyComboAvgOdds = document.getElementById('strategy-combo-avg-odds');
+            const strategyComboResultsContainer = document.getElementById('strategy-combo-results-container');
+            const copyStrategyParlayBtn = document.getElementById('copy-strategy-parlay-btn');
+            const copyStrategyParlayBtnText = document.getElementById('copy-strategy-parlay-btn-text');
+            let currentStrategyBets = [];
 
 
             let ALL_SPORTS_DATA = [];
@@ -1159,6 +1175,81 @@
                 comboResultsContainer.innerHTML = resultsHtml;
             }
 
+            function calculateAndDisplayStrategyComboAnalysis(bets) {
+                const numGames = bets.length;
+                const maxComboSize = Math.min(10, numGames);
+                
+                strategyComboTotalGames.textContent = numGames;
+                
+                if (numGames < 2) {
+                    strategyComboAvgOdds.textContent = '0.00';
+                    strategyComboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets in the generated parlay to analyze round robins.</p>`;
+                    return;
+                }
+
+                const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
+                const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
+                const avgOdds = totalOdds / numGames;
+
+                strategyComboAvgOdds.textContent = avgOdds.toFixed(2);
+
+                let resultsHtml = `
+                    <table class="w-full text-sm text-left">
+                        <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
+                            <tr class="border-b" style="border-color: var(--border-color);">
+                                <th class="p-2 font-semibold">Combo Size</th>
+                                <th class="p-2 font-semibold text-center">Cost for Type</th>
+                                <th class="p-2 font-semibold text-center">Wins for Profit</th>
+                                <th class="p-2 font-semibold text-center">Profit at Break-Even</th>
+                                <th class="p-2 font-semibold text-center">ROI at Break-Even</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                for (let k = 2; k <= maxComboSize; k++) {
+                    const numCombos = combinations(numGames, k);
+                    const costForThisComboSize = numCombos * wagerPerBet;
+                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
+
+                    let winsNeeded = -1;
+                    let profitAtBreakEven = 0;
+                    let roiAtBreakEven = 0;
+
+                    for (let w = k; w <= numGames; w++) {
+                        const winningCombos = combinations(w, k);
+                        const totalWinnings = winningCombos * payoutPerWinningCombo;
+                        if (totalWinnings > costForThisComboSize) {
+                            winsNeeded = w;
+                            profitAtBreakEven = totalWinnings - costForThisComboSize;
+                            if (costForThisComboSize > 0) {
+                                roiAtBreakEven = (profitAtBreakEven / costForThisComboSize) * 100;
+                            }
+                            break;
+                        }
+                    }
+                    
+                    resultsHtml += `
+                        <tr class="border-b" style="border-color: var(--border-color);">
+                            <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
+                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
+                            <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'Not Possible'}
+                            </td>
+                             <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `~ $${profitAtBreakEven.toFixed(2)}` : 'N/A'}
+                            </td>
+                            <td class="p-2 text-center font-semibold ${roiAtBreakEven <= 0 ? '' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `+${roiAtBreakEven.toFixed(0)}%` : 'N/A'}
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                resultsHtml += `</tbody></table>`;
+                strategyComboResultsContainer.innerHTML = resultsHtml;
+            }
+
 
             // --- EVENT HANDLERS ---
             function updateCardFromSlider(gameIndex, sliderValue) {
@@ -1244,18 +1335,17 @@
                 });
                 copyToClipboard(textToCopy, copyBtnText, 'Copy +EV Games');
             }
+
             function handleGenerateParlayClick() {
                 const strategies = {};
                 document.querySelectorAll('.strategy-select').forEach(select => {
                     strategies[select.dataset.sport] = select.value;
                 });
 
-                const primaryPicks = [];
-                const fillerPicks = [];
+                let generatedBets = [];
                 const usedGameIndices = new Set();
-                const PARLAY_CAP = 20;
-
-                // Step 1: Find all +EV moneyline picks based on strategy
+                
+                // Moneyline picks based on strategy
                 ALL_SPORTS_DATA.forEach((game, index) => {
                     const sport = getGameSport(game);
                     const strategy = strategies[sport];
@@ -1265,88 +1355,87 @@
                     const homeEV = calculateEV(0.5, game.moneyline_home);
 
                     let predictedWinner;
-                    if (awayEV > 0 && homeEV > 0) { predictedWinner = awayEV > homeEV ? 'away' : 'home'; } 
-                    else if (awayEV > 0) { predictedWinner = 'away'; } 
-                    else if (homeEV > 0) { predictedWinner = 'home'; } 
-                    else { return; } // No +EV moneyline at 50/50
-
-                    usedGameIndices.add(index);
-                    const predictedLoser = predictedWinner === 'away' ? 'home' : 'away';
-                    const finalPickTeam = (strategy === 'take') ? predictedWinner : predictedLoser;
-                    const pickTeamInfo = getTeamInfo(game[`${finalPickTeam}_team`]);
-
-                    primaryPicks.push({
-                        matchup: `${getTeamInfo(game.away_team).name} vs. ${getTeamInfo(game.home_team).name}`,
-                        pick: pickTeamInfo.name,
-                        justification: `(${strategy === 'take' ? 'Take' : 'Fade'} ${sport} Winner)`
-                    });
+                    if (awayEV > 0 || homeEV > 0) {
+                        predictedWinner = awayEV > homeEV ? 'away' : 'home';
+                        const finalPickTeam = (strategy === 'take') ? predictedWinner : (predictedWinner === 'away' ? 'home' : 'away');
+                        
+                        generatedBets.push({
+                            odds: game[`moneyline_${finalPickTeam}`],
+                            label: getTeamInfo(game[`${finalPickTeam}_team`]).name,
+                            ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]) // Store EV for sorting
+                        });
+                        usedGameIndices.add(index);
+                    }
                 });
 
-                // Step 2: Find the best O/U picks from the remaining games
-                const slotsToFill = PARLAY_CAP - primaryPicks.length;
+                // Filler O/U picks if needed, up to the cap
+                const PARLAY_CAP = 20;
+                const slotsToFill = PARLAY_CAP - generatedBets.length;
                 if (slotsToFill > 0) {
+                    const fillerPicks = [];
                     ALL_SPORTS_DATA.forEach((game, index) => {
-                        if (usedGameIndices.has(index)) return; // Skip if already used
-                        if (!game.total_over_odds || !game.total_under_odds) return; // Skip if no total odds
-
+                        if (usedGameIndices.has(index) || !game.total_over_odds || !game.total_under_odds) return;
                         const overEV = calculateEV(0.5, game.total_over_odds);
                         const underEV = calculateEV(0.5, game.total_under_odds);
 
                         if (overEV > underEV) {
-                            fillerPicks.push({ ev: overEV, pick: `Over ${game.total_over}`, matchup: `${getTeamInfo(game.away_team).name} vs. ${getTeamInfo(game.home_team).name}` });
+                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}` });
                         } else {
-                            fillerPicks.push({ ev: underEV, pick: `Under ${game.total_under}`, matchup: `${getTeamInfo(game.away_team).name} vs. ${getTeamInfo(game.home_team).name}` });
+                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}` });
                         }
                     });
 
                     fillerPicks.sort((a, b) => b.ev - a.ev);
-                    const bestFillers = fillerPicks.slice(0, slotsToFill).map(p => ({
-                        ...p,
-                        justification: '(Best O/U Pick)'
-                    }));
-                    primaryPicks.push(...bestFillers);
+                    generatedBets.push(...fillerPicks.slice(0, slotsToFill));
                 }
-                
-                if (primaryPicks.length === 0) {
+
+                // Final sort and cap
+                generatedBets.sort((a,b) => b.ev - a.ev);
+                currentStrategyBets = generatedBets.slice(0, PARLAY_CAP);
+
+                if (currentStrategyBets.length === 0) {
                     parlayBtnText.textContent = 'No Picks Found';
-                    setTimeout(() => { parlayBtnText.textContent = 'Apply Strategy & Copy Parlay'; }, 2500);
+                    setTimeout(() => { parlayBtnText.textContent = 'Analyze Parlay Strategy'; }, 2500);
                     return;
                 }
                 
-                // Instead of copying, show the modal
-                parlayRationaleContainer.style.display = 'none';
-                parlayRationaleContainer.innerHTML = '';
-                generateRationaleBtn.style.display = 'block';
-                generateRationaleBtn.disabled = false;
-                generateRationaleBtn.innerHTML = '✨ Generate Parlay Rationale';
-                parlayListContainer.innerHTML = '';
-                primaryPicks.slice(0, PARLAY_CAP).forEach(pick => {
-                    const pickElement = document.createElement('div');
-                    pickElement.className = 'p-3 rounded-lg text-sm';
-                    pickElement.style.backgroundColor = 'var(--input-bg)';
-                    pickElement.innerHTML = `
-                        <p class="font-semibold">${pick.matchup}</p>
-                        <p style="color: var(--accent-color);"><strong>PICK:</strong> ${pick.pick} <span class="text-xs font-normal" style="color: var(--text-secondary);">${pick.justification}</span></p>
-                    `;
-                    parlayListContainer.appendChild(pickElement);
-                });
-
-                parlayModal.dataset.picks = JSON.stringify(primaryPicks.slice(0, PARLAY_CAP));
-                showParlayModal();
+                showStrategyComboAnalysis();
             }
 
-            function showParlayModal() {
-                 parlayModal.classList.remove('hidden');
-                 setTimeout(() => { 
-                    parlayModal.classList.remove('opacity-0');
-                    parlayModalContent.classList.remove('scale-95');
+            function showStrategyComboAnalysis() {
+                strategyComboModal.classList.remove('hidden');
+                setTimeout(() => { 
+                    strategyComboModal.classList.remove('opacity-0');
+                    strategyComboModalContent.classList.remove('scale-95');
+                    calculateAndDisplayStrategyComboAnalysis(currentStrategyBets);
                 }, 10);
             }
 
-            function hideParlayModal() {
-                parlayModal.classList.add('opacity-0');
-                parlayModalContent.classList.add('scale-95');
-                setTimeout(() => parlayModal.classList.add('hidden'), 300);
+            function hideStrategyComboModal() {
+                strategyComboModal.classList.add('opacity-0');
+                strategyComboModalContent.classList.add('scale-95');
+                setTimeout(() => strategyComboModal.classList.add('hidden'), 300);
+            }
+
+            function handleCopyStrategyParlay() {
+                if (currentStrategyBets.length > 0) {
+                    const colors = {
+                        containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0'
+                    };
+                    let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
+                    htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Strategy Parlay (${currentStrategyBets.length} Picks)</h3>`;
+                    currentStrategyBets.forEach(bet => {
+                        const oddsText = bet.odds >= 2 ? `+${((bet.odds - 1) * 100).toFixed(0)}` : `${(-100 / (bet.odds - 1)).toFixed(0)}`;
+                        htmlToCopy += `
+                            <div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};">
+                                <p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p>
+                            </div>
+                        `;
+                    });
+                    htmlToCopy += `</div>`;
+                    copyHtmlToClipboard(htmlToCopy, copyStrategyParlayBtnText, 'Copy Parlay & Close');
+                }
+                 setTimeout(hideStrategyComboModal, 500);
             }
 
             function copyToClipboard(text, buttonTextElement, originalText) {
@@ -1366,21 +1455,18 @@
             }
 
             function copyHtmlToClipboard(html, buttonTextElement, originalText) {
-                // Create a temporary element to hold the HTML
                 const tempEl = document.createElement('div');
                 tempEl.style.position = 'absolute';
                 tempEl.style.left = '-9999px';
                 tempEl.innerHTML = html;
                 document.body.appendChild(tempEl);
 
-                // Select the content of the element
                 const range = document.createRange();
                 range.selectNodeContents(tempEl);
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
 
-                // Copy the selection to the clipboard
                 try {
                     document.execCommand('copy');
                     buttonTextElement.textContent = 'Copied!';
@@ -1389,7 +1475,6 @@
                     buttonTextElement.textContent = 'Copy Failed';
                 }
 
-                // Clean up
                 selection.removeAllRanges();
                 document.body.removeChild(tempEl);
                 setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
@@ -1508,55 +1593,6 @@
                 }
             }
             
-            async function getParlayRationale(picks) {
-                 if (!geminiApiKey || geminiApiKey === 'REPLACE_WITH_YOUR_API_KEY') {
-                    parlayRationaleContainer.style.display = 'block';
-                    parlayRationaleContainer.innerHTML = 'Please add your Gemini API key to use this feature.';
-                    return;
-                }
-
-                generateRationaleBtn.disabled = true;
-                generateRationaleBtn.innerHTML = `
-                    <svg class="spinner h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Generating...
-                `;
-                parlayRationaleContainer.style.display = 'block';
-                parlayRationaleContainer.innerHTML = 'Crafting a compelling argument for your picks...';
-
-                const picksString = picks.map(p => `- ${p.pick} in the ${p.matchup} game. Justification: ${p.justification}`).join('\n');
-                const prompt = `Act as a sharp, confident sports betting analyst. I have created a parlay with the following picks:\n\n${picksString}\n\nWrite a short, compelling paragraph (3-4 sentences) that provides a rationale for this parlay. Weave the picks together into a coherent strategy. Make it sound smart and persuasive.`;
-
-                try {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
-                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`API Error: ${errorBody.error.message}`);
-                    }
-
-                    const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                    if (text) {
-                        parlayRationaleContainer.innerHTML = text.replace(/\n/g, '<br>');
-                        parlayRationaleContainer.dataset.rationale = text;
-                    } else {
-                        throw new Error("No content received from AI.");
-                    }
-                } catch (err) {
-                    console.error("Gemini API Error:", err);
-                    parlayRationaleContainer.innerHTML = `Sorry, the AI rationale failed. ${err.message}`;
-                } finally {
-                    generateRationaleBtn.style.display = 'none'; // Hide after use
-                }
-            }
-
 
             function attachEventListeners() {
                 gameListContainer.addEventListener('input', e => {
@@ -1612,54 +1648,6 @@
                 setTimeout(() => helpModal.classList.add('hidden'), 300);
             });
             
-            // Parlay Modal Listeners
-            closeParlayModalBtn.addEventListener('click', hideParlayModal);
-            cancelParlayBtn.addEventListener('click', hideParlayModal);
-            copyParlayBtn.addEventListener('click', () => {
-                const picks = JSON.parse(parlayModal.dataset.picks || '[]');
-                if (picks.length > 0) {
-                    // Define colors for portability (light theme)
-                    const colors = {
-                        containerBg: '#f1f5f9',
-                        accent: '#2563eb',
-                        textPrimary: '#0f172a',
-                        textSecondary: '#475569',
-                        border: '#e2e8f0'
-                    };
-
-                    let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
-                    htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Strategic Parlay Picks (${picks.length} Games)</h3>`;
-                    
-                    const rationaleText = parlayRationaleContainer.dataset.rationale;
-                    if (rationaleText) {
-                        htmlToCopy += `<p style="font-size: 14px; margin-bottom: 12px; border-left: 3px solid ${colors.accent}; padding-left: 12px; font-style: italic;">${rationaleText.replace(/\n/g, '<br>')}</p>`;
-                    }
-
-                    picks.forEach(pick => {
-                        htmlToCopy += `
-                            <div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};">
-                                <p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${pick.matchup}</p>
-                                <p style="color: ${colors.accent}; margin: 0;">
-                                    <strong style="color: ${colors.accent};">PICK:</strong> ${pick.pick}
-                                    <span style="font-size: 12px; font-weight: 400; color: ${colors.textSecondary};">${pick.justification}</span>
-                                </p>
-                            </div>
-                        `;
-                    });
-                    htmlToCopy += `</div>`;
-
-                    copyHtmlToClipboard(htmlToCopy, copyParlayBtnText, 'Copy & Close');
-                }
-                setTimeout(hideParlayModal, 500); // Give time for "Copied!" text to show
-            });
-
-            generateRationaleBtn.addEventListener('click', () => {
-                const picks = JSON.parse(parlayModal.dataset.picks || '[]');
-                if (picks.length > 0) {
-                    getParlayRationale(picks);
-                }
-            });
-
              // Bet Slip Listeners
             clearSlipBtn.addEventListener('click', () => {
                 betSlip = [];
@@ -1711,7 +1699,7 @@
                 }
             });
             
-            // New Combo Modal Listeners
+            // Bet Slip Combo Modal Listeners
             comboAnalysisBtn.addEventListener('click', () => {
                 if (betSlip.length >= 2) {
                     comboModal.classList.remove('hidden');
@@ -1732,10 +1720,14 @@
             closeComboModalBtn.addEventListener('click', hideComboModal);
             wagerPerBetInput.addEventListener('input', calculateAndDisplayComboAnalysis);
 
+            // Strategy Combo Modal Listeners
+            closeStrategyComboModalBtn.addEventListener('click', hideStrategyComboModal);
+            strategyWagerPerBetInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
+            copyStrategyParlayBtn.addEventListener('click', handleCopyStrategyParlay);
+
 
         });
     </script>
 </body>
 </html>
-
 
