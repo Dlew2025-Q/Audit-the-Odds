@@ -1362,7 +1362,8 @@
                         generatedBets.push({
                             odds: game[`moneyline_${finalPickTeam}`],
                             label: getTeamInfo(game[`${finalPickTeam}_team`]).name,
-                            ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]) // Store EV for sorting
+                            ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]), // Store EV for sorting
+                            gameIndex: index
                         });
                         usedGameIndices.add(index);
                     }
@@ -1379,9 +1380,9 @@
                         const underEV = calculateEV(0.5, game.total_under_odds);
 
                         if (overEV > underEV) {
-                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}` });
+                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: index });
                         } else {
-                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}` });
+                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: index });
                         }
                     });
 
@@ -1426,9 +1427,21 @@
                     htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Strategy Parlay (${currentStrategyBets.length} Picks)</h3>`;
                     currentStrategyBets.forEach(bet => {
                         const oddsText = bet.odds >= 2 ? `+${((bet.odds - 1) * 100).toFixed(0)}` : `${(-100 / (bet.odds - 1)).toFixed(0)}`;
+                        
+                        let subtext = '';
+                        // Check if the bet is a Total and add the matchup info
+                        if ((bet.label.toLowerCase().startsWith('over') || bet.label.toLowerCase().startsWith('under')) && bet.gameIndex !== undefined) {
+                            const game = ALL_SPORTS_DATA[bet.gameIndex];
+                            if (game) {
+                                const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
+                                subtext = `<p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p>`;
+                            }
+                        }
+
                         htmlToCopy += `
                             <div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};">
                                 <p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p>
+                                ${subtext}
                             </div>
                         `;
                     });
@@ -1730,5 +1743,6 @@
     </script>
 </body>
 </html>
+
 
 
