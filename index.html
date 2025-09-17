@@ -398,7 +398,7 @@
 
             // --- Hardcoded API Keys ---
             const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
-			const geminiApiKey = '';
+			const geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
 
             // --- THEME SWITCHER ---
             const applyTheme = (theme) => {
@@ -732,15 +732,6 @@
                                 <button class="utility-btn reset-prob-btn text-xs" data-game-index="${index}">Reset</button>
                             </div>
                             <div id="${gameId}-results" class="mt-4 space-y-3"></div>
-                        </div>
-                    </div>
-                     <!-- AI Analysis Section -->
-                    <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
-                        <button class="get-analysis-btn utility-btn text-sm w-full flex items-center justify-center" data-game-index="${index}" data-away-team="${game.away_team}" data-home-team="${game.home_team}" data-sport="${gameSport}">
-                             ✨ Get AI Game Analysis
-                        </button>
-                        <div id="game-${index}-analysis-container" class="text-sm text-secondary mt-3 p-3 rounded-lg" style="background-color: var(--input-bg); display: none;">
-                            <!-- AI analysis will be loaded here -->
                         </div>
                     </div>
                 `;
@@ -1492,113 +1483,6 @@
                 document.body.removeChild(tempEl);
                 setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
             }
-            
-            async function getGameAnalysis(button) {
-                const { gameIndex, awayTeam, homeTeam, sport } = button.dataset;
-                const analysisContainer = document.getElementById(`game-${gameIndex}-analysis-container`);
-
-                button.disabled = true;
-                button.innerHTML = `
-                    <svg class="spinner h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Analyzing...
-                `;
-                analysisContainer.style.display = 'block';
-                analysisContainer.innerHTML = '';
-                
-                const prompt = `Provide a comparative analysis for the upcoming ${sport} game between ${awayTeam} (away) and ${homeTeam} (home). Rate each team from 1 (weak) to 10 (strong) in four distinct categories: "Offense", "Defense", "Recent Form", and "Injury Impact" (a lower score means more negative impact from injuries).`;
-                const payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
-                                "away_team_ratings": { 
-                                    type: "OBJECT",
-                                    properties: {
-                                        "offense": { "type": "NUMBER" }, "defense": { "type": "NUMBER" }, "recent_form": { "type": "NUMBER" }, "injury_impact": { "type": "NUMBER" }
-                                    }
-                                },
-                                "home_team_ratings": {
-                                    type: "OBJECT",
-                                    properties: {
-                                        "offense": { "type": "NUMBER" }, "defense": { "type": "NUMBER" }, "recent_form": { "type": "NUMBER" }, "injury_impact": { "type": "NUMBER" }
-                                    }
-                                }
-                            },
-                        }
-                    }
-                };
-                
-                try {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
-
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`API Error: ${errorBody.error.message}`);
-                    }
-
-                    const result = await response.json();
-                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
-                    if (jsonText) {
-                        const analysis = JSON.parse(jsonText);
-                        const awayRatings = analysis.away_team_ratings;
-                        const homeRatings = analysis.home_team_ratings;
-                        const categories = {
-                            offense: 'Offense',
-                            defense: 'Defense',
-                            recent_form: 'Recent Form',
-                            injury_impact: 'Injury Impact'
-                        };
-
-                        let tableHtml = `
-                            <table class="w-full text-sm text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b" style="border-color: var(--border-color);">
-                                        <th class="p-2 font-semibold">Category</th>
-                                        <th class="p-2 font-semibold text-center">${awayTeam}</th>
-                                        <th class="p-2 font-semibold text-center">${homeTeam}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
-
-                        for (const key in categories) {
-                            const awayScore = awayRatings[key];
-                            const homeScore = homeRatings[key];
-                            const awayStar = awayScore > homeScore ? ' <span class="text-yellow-500">⭐</span>' : '';
-                            const homeStar = homeScore > awayScore ? ' <span class="text-yellow-500">⭐</span>' : '';
-
-                            tableHtml += `
-                                <tr class="border-b" style="border-color: var(--border-color);">
-                                    <td class="p-2 font-medium">${categories[key]}</td>
-                                    <td class="p-2 text-center font-bold">${awayScore.toFixed(1)}${awayStar}</td>
-                                    <td class="p-2 text-center font-bold">${homeScore.toFixed(1)}${homeStar}</td>
-                                </tr>
-                            `;
-                        }
-
-                        tableHtml += `</tbody></table>`;
-                        analysisContainer.innerHTML = tableHtml;
-
-                    } else {
-                        throw new Error("No content received from AI.");
-                    }
-                } catch (err) {
-                    console.error("Gemini API Error:", err);
-                    analysisContainer.innerHTML = `Sorry, the AI analysis failed. ${err.message}`;
-                } finally {
-                    button.style.display = 'none'; // Hide button after it's been used
-                }
-            }
-            
 
             function attachEventListeners() {
                 gameListContainer.addEventListener('input', e => {
@@ -1622,10 +1506,6 @@
                 gameListContainer.addEventListener('click', e => {
                     if (e.target.closest('.reset-prob-btn')) { handleResetProbability(e.target.closest('.reset-prob-btn')); }
                     if (e.target.closest('.fifty-fifty-btn')) { handle50PercentClick(e.target.closest('.fifty-fifty-btn')); }
-                    const analysisBtn = e.target.closest('.get-analysis-btn');
-                    if (analysisBtn) {
-                        getGameAnalysis(analysisBtn);
-                    }
                     const betOption = e.target.closest('.bet-option');
                     if (betOption) {
                         handleBetClick(betOption);
