@@ -160,7 +160,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
                 </button>
                 <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v6.5</span></h1>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v6.6</span></h1>
                     <p class="text-lg text-secondary">Find value by analyzing live betting lines.</p>
                 </div>
             </div>
@@ -208,7 +208,11 @@
                      <!-- Strategy Controls -->
                     <div id="strategy-controls" class="hidden mb-6 p-4 rounded-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         <h3 class="text-lg font-semibold mb-3 text-center">Parlay Strategy</h3>
-                        <div id="strategy-options" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            <button id="select-all-sports" class="utility-btn text-xs">Select All</button>
+                            <button id="deselect-all-sports" class="utility-btn text-xs">Deselect All</button>
+                        </div>
+                        <div id="strategy-options" class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4"></div>
                         <div class="text-center">
                             <button id="generate-parlay-btn" class="text-base font-semibold py-2 px-6 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed mx-auto" style="background-color: #16a34a; color: white;" disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -862,12 +866,13 @@
                 if (sports.length > 0) {
                     sports.forEach(sport => {
                         const controlEl = document.createElement('div');
-                        controlEl.className = 'flex flex-col items-center';
+                        controlEl.className = 'flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800';
                         controlEl.innerHTML = `
-                            <label for="strategy-${sport}" class="text-sm font-medium mb-1">${sport}</label>
-                            <select id="strategy-${sport}" data-sport="${sport}" class="strategy-select text-sm rounded-md p-1 w-full" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
-                                <option value="take">Take Winner</option>
-                                <option value="fade">Fade Winner</option>
+                            <input type="checkbox" id="sport-toggle-${sport}" data-sport="${sport}" class="sport-toggle-checkbox h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" checked>
+                            <label for="sport-toggle-${sport}" class="text-sm font-medium flex-1">${sport}</label>
+                            <select id="strategy-${sport}" data-sport="${sport}" class="strategy-select text-sm rounded-md p-1 w-24" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
+                                <option value="take">Take</option>
+                                <option value="fade">Fade</option>
                                 <option value="ignore">Ignore</option>
                             </select>
                         `;
@@ -1239,7 +1244,7 @@
 
                 strategyComboAvgOdds.textContent = avgOdds.toFixed(2);
 
-                let bestProfitPerWin = -Infinity;
+                let bestRoi = -Infinity;
                 let bestComboIndex = -1;
                 let comboData = [];
 
@@ -1250,7 +1255,7 @@
 
                     let winsNeeded = -1;
                     let profitAtBreakEven = 0;
-                    let profitPerWin = 0;
+                    let roiAtBreakEven = 0;
 
                     for (let w = k; w <= numGames; w++) {
                         const winningCombos = combinations(w, k);
@@ -1258,19 +1263,19 @@
                         if (totalWinnings > costForThisComboSize) {
                             winsNeeded = w;
                             profitAtBreakEven = totalWinnings - costForThisComboSize;
-                            if (winsNeeded > 0) {
-                                profitPerWin = profitAtBreakEven / winsNeeded;
+                            if (costForThisComboSize > 0) {
+                                roiAtBreakEven = (profitAtBreakEven / costForThisComboSize) * 100;
                             }
                             break;
                         }
                     }
 
-                    if(profitPerWin > bestProfitPerWin) {
-                        bestProfitPerWin = profitPerWin;
+                    if(roiAtBreakEven > bestRoi) {
+                        bestRoi = roiAtBreakEven;
                         bestComboIndex = k;
                     }
 
-                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin});
+                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven});
                 }
 
 
@@ -1283,14 +1288,14 @@
                                 <th class="p-2 font-semibold text-center">Cost</th>
                                 <th class="p-2 font-semibold text-center">Wins for Profit</th>
                                 <th class="p-2 font-semibold text-center">Profit @ B/E</th>
-                                <th class="p-2 font-semibold text-center text-yellow-500">Profit / Win</th>
+                                <th class="p-2 font-semibold text-center text-yellow-500">ROI @ B/E</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
                 
                 comboData.forEach(data => {
-                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin} = data;
+                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven} = data;
                     const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
 
                     resultsHtml += `
@@ -1304,8 +1309,8 @@
                              <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
                                 ${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}
                             </td>
-                            <td class="p-2 text-center font-semibold ${profitPerWin <= 0 ? '' : 'text-yellow-500'}">
-                                ${winsNeeded !== -1 ? `$${profitPerWin.toFixed(2)}` : 'N/A'}
+                            <td class="p-2 text-center font-semibold ${roiAtBreakEven <= 0 ? '' : 'text-yellow-500'}">
+                                ${winsNeeded !== -1 ? `+${roiAtBreakEven.toFixed(0)}%` : 'N/A'}
                             </td>
                         </tr>
                     `;
@@ -1487,10 +1492,20 @@
                     strategies[select.dataset.sport] = select.value;
                 });
 
+                const selectedSports = new Set();
+                document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
+                    selectedSports.add(checkbox.dataset.sport);
+                });
+
+
                 let generatedBets = [];
                 const usedGameIndices = new Set();
                 
-                ALL_SPORTS_DATA.forEach((game, index) => {
+                const availableGames = ALL_SPORTS_DATA
+                    .map((game, index) => ({ ...game, originalIndex: index }))
+                    .filter(game => selectedSports.has(getGameSport(game)));
+
+                availableGames.forEach((game) => {
                     const sport = getGameSport(game);
                     const strategy = strategies[sport];
                     if (strategy === 'ignore' || !game.moneyline_away || !game.moneyline_home) return;
@@ -1507,9 +1522,9 @@
                             odds: game[`moneyline_${finalPickTeam}`],
                             label: getTeamInfo(game[`${finalPickTeam}_team`]).name,
                             ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]),
-                            gameIndex: index
+                            gameIndex: game.originalIndex
                         });
-                        usedGameIndices.add(index);
+                        usedGameIndices.add(game.originalIndex);
                     }
                 });
 
@@ -1517,15 +1532,17 @@
                 const slotsToFill = PARLAY_CAP - generatedBets.length;
                 if (slotsToFill > 0) {
                     const fillerPicks = [];
-                    ALL_SPORTS_DATA.forEach((game, index) => {
-                        if (usedGameIndices.has(index) || !game.total_over_odds || !game.total_under_odds) return;
+                    const fillerCandidates = availableGames.filter(game => !usedGameIndices.has(game.originalIndex));
+
+                    fillerCandidates.forEach((game) => {
+                        if (!game.total_over_odds || !game.total_under_odds) return;
                         const overEV = calculateEV(0.5, game.total_over_odds);
                         const underEV = calculateEV(0.5, game.total_under_odds);
 
                         if (overEV > underEV) {
-                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: index });
+                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex });
                         } else {
-                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: index });
+                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex });
                         }
                     });
 
@@ -1822,10 +1839,17 @@
                         box.checked = e.target.checked;
                     });
                 }
-                // Always update totals on any change within the container
                 updateComboTotals();
             });
             
+            // Strategy Controls Listeners
+            document.getElementById('select-all-sports').addEventListener('click', () => {
+                document.querySelectorAll('.sport-toggle-checkbox').forEach(box => box.checked = true);
+            });
+            document.getElementById('deselect-all-sports').addEventListener('click', () => {
+                document.querySelectorAll('.sport-toggle-checkbox').forEach(box => box.checked = false);
+            });
+
             // Strategy Combo Modal Listeners
             closeStrategyComboModalBtn.addEventListener('click', hideStrategyComboModal);
             strategyWagerPerBetInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
@@ -1853,4 +1877,5 @@
     </script>
 </body>
 </html>
+
 
