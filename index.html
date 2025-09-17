@@ -398,7 +398,7 @@
 
             // --- Hardcoded API Keys ---
             const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
-			const geminiApiKey = 'REPLACE_WITH_YOUR_API_KEY';
+			const geminiApiKey = '';
 
             // --- THEME SWITCHER ---
             const applyTheme = (theme) => {
@@ -1494,13 +1494,6 @@
             }
             
             async function getGameAnalysis(button) {
-                 if (!geminiApiKey || geminiApiKey === 'REPLACE_WITH_YOUR_API_KEY') {
-                    showError("Please add your Gemini API Key to the `index.html` file to use this feature.", true);
-                    button.textContent = "API Key Missing";
-                    button.disabled = true;
-                    return;
-                }
-
                 const { gameIndex, awayTeam, homeTeam, sport } = button.dataset;
                 const analysisContainer = document.getElementById(`game-${gameIndex}-analysis-container`);
 
@@ -1743,8 +1736,4 @@
     </script>
 </body>
 </html>
-
-
-
-
 
