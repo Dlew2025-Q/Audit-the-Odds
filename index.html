@@ -229,6 +229,10 @@
                                 <option value="highest-ev">Highest EV</option>
                             </select>
                         </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="min-odds-filter" class="text-sm font-medium">Min Odds:</label>
+                            <input type="number" id="min-odds-filter" placeholder="-200" step="10" class="text-sm rounded-md p-1 w-20" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
+                        </div>
                         <div id="soccer-market-control" class="flex items-center space-x-2 hidden">
                             <label for="soccer-market-select" class="text-sm font-medium">Soccer Bet Type:</label>
                             <select id="soccer-market-select" class="text-sm rounded-md p-1" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
@@ -332,8 +336,8 @@
                         <input type="number" id="strategy-combo-total-games-input" min="2" class="w-full p-2 rounded-md mt-1" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                     </div>
                     <div class="text-center p-2 rounded-md" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
-                        <div class="text-sm font-medium text-secondary">Calculated Avg Odds (Decimal)</div>
-                        <div id="strategy-combo-avg-odds" class="text-xl font-bold">0.00</div>
+                        <div class="text-sm font-medium text-secondary">Calculated Avg Odds (American)</div>
+                        <div id="strategy-combo-avg-odds" class="text-xl font-bold">0</div>
                     </div>
                     <div>
                         <label for="strategy-override-odds-input" class="block text-sm font-medium">Override Avg Odds (American)</label>
@@ -383,6 +387,7 @@
             const helpModalContent = document.getElementById('help-modal-content');
             const closeHelpModalBtn = document.getElementById('close-help-modal');
             const summaryDashboard = document.getElementById('summary-dashboard');
+            const minOddsFilter = document.getElementById('min-odds-filter');
             
             const betSlipArea = document.getElementById('bet-slip-area');
             const betSlipList = document.getElementById('bet-slip-list');
@@ -549,6 +554,15 @@
                     return (100 / Math.abs(americanOdds)) + 1;
                 }
                 return NaN; // Invalid American odds (e.g., between -99 and 99)
+            }
+
+            function decimalToAmerican(decimalOdds) {
+                if (isNaN(decimalOdds) || decimalOdds <= 1) return 'N/A';
+                if (decimalOdds >= 2.0) {
+                    return `+${((decimalOdds - 1) * 100).toFixed(0)}`;
+                } else {
+                    return `${(-100 / (decimalOdds - 1)).toFixed(0)}`;
+                }
             }
 
             function combinations(n, k) {
@@ -799,6 +813,7 @@
                 errorState.classList.add('hidden');
                 evFilterToggle.checked = false;
                 sortSelect.value = 'default';
+                minOddsFilter.value = '';
                 betSlip = [];
                 renderBetSlip();
             }
@@ -978,10 +993,25 @@
             function applyFiltersAndSorting() {
                 const showPositiveOnly = evFilterToggle.checked;
                 const sortBy = sortSelect.value;
+                const minAmericanOdds = parseInt(minOddsFilter.value, 10);
+                const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
                 let cardsToDisplay = [...gameCardElements];
 
                 if (showPositiveOnly) {
                     cardsToDisplay = cardsToDisplay.filter(card => card.dataset.positiveEv === 'true');
+                }
+
+                if (minDecimalOdds) {
+                    cardsToDisplay = cardsToDisplay.filter(card => {
+                        const betOptions = card.querySelectorAll('.bet-option');
+                        if (betOptions.length === 0) return true; // Don't hide cards still loading
+
+                        // Card is visible if at least ONE of its bet options meets the odds criteria
+                        return Array.from(betOptions).some(option => {
+                            const betDecimalOdds = parseFloat(option.dataset.betOdds);
+                            return betDecimalOdds >= minDecimalOdds;
+                        });
+                    });
                 }
 
                 if (sortBy === 'highest-ev') {
@@ -1072,6 +1102,9 @@
                 gameCardElements.forEach(card => {
                     card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
                 });
+                
+                const minAmericanOdds = parseInt(minOddsFilter.value, 10);
+                const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
 
                 const potentialBets = [];
                 gameCardElements.forEach(card => {
@@ -1082,6 +1115,13 @@
 
                     card.querySelectorAll('.result-display').forEach(betEl => {
                         const currentEv = parseFloat(betEl.dataset.ev);
+                        const currentOdds = parseFloat(betEl.dataset.betOdds);
+
+                        // Respect the minimum odds filter
+                        if (minDecimalOdds && currentOdds < minDecimalOdds) {
+                            return; 
+                        }
+
                         if (currentEv > maxEvForGame) {
                             maxEvForGame = currentEv;
                             bestBetElForGame = betEl;
@@ -1254,7 +1294,7 @@
                 const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
                 const calculatedAvgOdds = bets.length > 0 ? totalOdds / bets.length : 0;
 
-                strategyComboAvgOdds.textContent = calculatedAvgOdds.toFixed(2);
+                strategyComboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
                 
                 const overrideAmericanOdds = parseFloat(strategyOverrideOddsInput.value);
                 const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
@@ -1416,7 +1456,8 @@
             }
             function handleCopyClick() {
                 let textToCopy = "Audit the Odds - +EV Opportunities\n\n";
-                gameCardElements.forEach((card) => {
+                const visibleCards = gameListContainer.querySelectorAll('.game-card');
+                visibleCards.forEach((card) => {
                      if (card.dataset.positiveEv === 'true') {
                         const gameIndex = card.dataset.gameIndex;
                         const game = ALL_SPORTS_DATA[gameIndex];
@@ -1455,6 +1496,9 @@
                     selectedSports.add(checkbox.dataset.sport);
                 });
 
+                const minAmericanOdds = parseInt(minOddsFilter.value, 10);
+                const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
+
                 let generatedBets = [];
                 const usedGameIndices = new Set();
                 
@@ -1475,33 +1519,38 @@
                     const predictedWinner = awayEV > homeEV ? 'away' : 'home';
                     const finalPickTeam = (strategy === 'take') ? predictedWinner : (predictedWinner === 'away' ? 'home' : 'away');
                     
+                    let betToAdd = null;
                     const isSpreadSport = ['Football', 'Basketball'].includes(sport);
                     const canUseSpread = game.spread_away_odds && game.spread_home_odds;
 
                     if (sport === 'Soccer') {
                         const soccerDefaultOdds = americanToDecimal(-111); // Approx 1.90
-                        generatedBets.push({
+                        betToAdd = {
                             odds: soccerDefaultOdds,
                             label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (Spread)`,
                             ev: calculateEV(0.5, soccerDefaultOdds),
                             gameIndex: game.originalIndex
-                        });
+                        };
                     } else if (isSpreadSport && canUseSpread) {
-                         generatedBets.push({
+                         betToAdd = {
                             odds: game[`spread_${finalPickTeam}_odds`],
                             label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} ${game[`spread_${finalPickTeam}`] > 0 ? '+' : ''}${game[`spread_${finalPickTeam}`]}`,
                             ev: calculateEV(0.5, game[`spread_${finalPickTeam}_odds`]),
                             gameIndex: game.originalIndex
-                        });
+                        };
                     } else { // Default to moneyline for MLB, NHL, and as a fallback if spread isn't available
-                         generatedBets.push({
+                         betToAdd = {
                             odds: game[`moneyline_${finalPickTeam}`],
                             label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (ML)`,
                             ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]),
                             gameIndex: game.originalIndex
-                        });
+                        };
                     }
-                    usedGameIndices.add(game.originalIndex);
+
+                    if (betToAdd && (!minDecimalOdds || betToAdd.odds >= minDecimalOdds)) {
+                        generatedBets.push(betToAdd);
+                        usedGameIndices.add(game.originalIndex);
+                    }
                 });
 
                 const PARLAY_CAP = 20;
@@ -1516,9 +1565,15 @@
                         const underEV = calculateEV(0.5, game.total_under_odds);
 
                         if (overEV > underEV) {
-                            fillerPicks.push({ ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex });
+                            const pick = { ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex };
+                            if (!minDecimalOdds || pick.odds >= minDecimalOdds) {
+                                fillerPicks.push(pick);
+                            }
                         } else {
-                            fillerPicks.push({ ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex });
+                            const pick = { ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex };
+                            if (!minDecimalOdds || pick.odds >= minDecimalOdds) {
+                                fillerPicks.push(pick);
+                            }
                         }
                     });
 
@@ -1660,6 +1715,7 @@
             // --- SETUP LISTENERS ---
             evFilterToggle.addEventListener('change', applyFiltersAndSorting);
             sortSelect.addEventListener('change', applyFiltersAndSorting);
+            minOddsFilter.addEventListener('input', applyFiltersAndSorting);
             soccerMarketSelect.addEventListener('change', () => displayGames(ALL_SPORTS_DATA));
             copyBtn.addEventListener('click', handleCopyClick);
             addBestEvBtn.addEventListener('click', handleAddBestEVBets);
