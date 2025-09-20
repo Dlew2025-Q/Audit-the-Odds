@@ -152,7 +152,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
                 </button>
                 <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v10.1</span></h1>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v10.3</span></h1>
                     <p class="text-lg text-secondary">Find value by analyzing live betting lines for today's games.</p>
                 </div>
             </div>
@@ -372,6 +372,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+            const appVersion = document.querySelector('header h1 span').textContent.trim();
 
             /**
              * Generates a momentum-adjusted probability based on the point spread.
@@ -904,15 +906,25 @@
                 } else {
                     const probabilityShift = (momentumAdjustedProb - normalizedAwayProb) * 100;
                     const shiftColor = probabilityShift > 0.1 ? 'var(--positive-text)' : probabilityShift < -0.1 ? 'var(--negative-text)' : 'var(--text-secondary)';
-                    const arrowSvg = probabilityShift > 0.1 
-                        ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>`
-                        : probabilityShift < -0.1
-                        ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`
-                        : `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z" /><path d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /></svg>`;
+                    
+                    let arrowSvg = '';
+                    let momentumLabel = '';
+
+                    if (probabilityShift > 0.1) {
+                        arrowSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>`;
+                        momentumLabel = 'Away';
+                    } else if (probabilityShift < -0.1) {
+                        arrowSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+                        momentumLabel = 'Home';
+                    } else {
+                        arrowSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1z" /><path d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /></svg>`;
+                        momentumLabel = '';
+                    }
                     
                     momentumIndicatorHtml = `
                         <span class="ml-2 flex items-center text-xs font-bold" style="color: ${shiftColor};" title="Momentum adjustment based on the market point spread.">
                             ${arrowSvg}
+                            <span class="ml-1 mr-1">${momentumLabel}</span>
                             <span>${probabilityShift.toFixed(1)}%</span>
                         </span>
                     `;
@@ -1647,7 +1659,7 @@
             }
             function handleCopyClick() {
                 const minOddsValue = minOddsFilter.value || 'None';
-                let textToCopy = `Audit the Odds - Filtered +EV Bets\n`;
+                let textToCopy = `Audit the Odds (${appVersion}) - Filtered +EV Bets\n`;
                 textToCopy += `Settings: Min Odds: ${minOddsValue}\n\n`;
 
                 const visibleCards = gameListContainer.querySelectorAll('.game-card');
@@ -1818,14 +1830,12 @@
             
             function handleCopyStrategyParlay() {
                 if (currentStrategyBets.length > 0) {
-                    const title = `${slipContext.type} (${currentStrategyBets.length} Picks)`;
-
                     const colors = {
                         containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0'
                     };
                     let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
-                    htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${title}</h3>`;
-                    htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">Settings: ${slipContext.settings}</p>`;
+                    htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${currentStrategyBets.length} Picks)</h3>`;
+                    htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
 
                     currentStrategyBets.forEach(bet => {
                         const oddsText = bet.odds >= 2 ? `+${((bet.odds - 1) * 100).toFixed(0)}` : `${(-100 / (bet.odds - 1)).toFixed(0)}`;
@@ -1986,7 +1996,7 @@
                     };
                     let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
                     htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${betSlip.length} Picks)</h3>`;
-                    htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">Settings: ${slipContext.settings}</p>`;
+                    htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
                     
                     betSlip.forEach(bet => {
                         const game = ALL_SPORTS_DATA[bet.gameIndex];
