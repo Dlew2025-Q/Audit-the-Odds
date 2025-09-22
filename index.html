@@ -152,7 +152,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
                 </button>
                 <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v10.3</span></h1>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v10.5</span></h1>
                     <p class="text-lg text-secondary">Find value by analyzing live betting lines for today's games.</p>
                 </div>
             </div>
@@ -200,9 +200,15 @@
                     <!-- Strategy Controls -->
                     <div id="strategy-controls" class="hidden mb-6 p-4 rounded-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         <h3 class="text-lg font-semibold mb-3 text-center">Parlay Strategy</h3>
-                        <div class="flex justify-center space-x-2 mb-4">
-                            <button id="select-all-sports" class="utility-btn text-xs">Select All</button>
-                            <button id="deselect-all-sports" class="utility-btn text-xs">Deselect All</button>
+                        <div class="flex justify-center items-center flex-wrap gap-4 mb-4">
+                            <div class="flex items-center space-x-2">
+                                <button id="select-all-sports" class="utility-btn text-xs">Select All</button>
+                                <button id="deselect-all-sports" class="utility-btn text-xs">Deselect All</button>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="home-teams-only-toggle" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="home-teams-only-toggle" class="text-sm font-medium">Home Teams Only</label>
+                            </div>
                         </div>
                         <div id="strategy-options" class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4"></div>
                         <div class="text-center">
@@ -435,6 +441,7 @@
             const closeHelpModalBtn = document.getElementById('close-help-modal');
             const summaryDashboard = document.getElementById('summary-dashboard');
             const minOddsFilter = document.getElementById('min-odds-filter');
+            const homeTeamsOnlyToggle = document.getElementById('home-teams-only-toggle');
             
             const betSlipArea = document.getElementById('bet-slip-area');
             const betSlipList = document.getElementById('bet-slip-list');
@@ -633,7 +640,7 @@
                 'Detroit Tigers': { id: '134904', logoId: 'mlb/500/det.png' },
                 'Houston Astros': { id: '134886', logoId: 'mlb/500/hou.png' },
                 'Kansas City Royals': { id: '134905', logoId: 'mlb/500/kc.png' },
-                'Los Angeles Angels': { id: '134901', logoId: 'mlb/500/ana.png' },
+                'Los Angeles Angels': { id: '134901', logoId: 'mlb/500/laa.png' },
                 'Los Angeles Dodgers': { id: '134880', logoId: 'mlb/500/lad.png' },
                 'Miami Marlins': { id: '134878', logoId: 'mlb/500/mia.png' },
                 'Milwaukee Brewers': { id: '134885', logoId: 'mlb/500/mil.png' },
@@ -653,9 +660,9 @@
                 'Washington Nationals': { id: '134875', logoId: 'mlb/500/wsh.png' },
                 // CFL
                 'BC Lions': { id: '135246', logoId: 'cfl/500/bc.png' },
-                'Calgary Stampeders': { id: '135248', logoId: 'cfl/500/cal.png' },
+                'Calgary Stampeders': { id: '135248', logoId: 'cfl/500/cgy.png' },
                 'Edmonton Elks': { id: '135247', logoId: 'cfl/500/edm.png' },
-                'Saskatchewan Roughriders': { id: '135249', logoId: 'cfl/500/sask.png' },
+                'Saskatchewan Roughriders': { id: '135249', logoId: 'cfl/500/ssk.png' },
                 'Winnipeg Blue Bombers': { id: '135250', logoId: 'cfl/500/wpg.png' },
                 'Hamilton Tiger-Cats': { id: '135251', logoId: 'cfl/500/ham.png' },
                 'Toronto Argonauts': { id: '135252', logoId: 'cfl/500/tor.png' },
@@ -1283,9 +1290,12 @@
 
             function handleBuildMomentumParlay() {
                 const minOddsValue = minOddsFilter.value || 'None';
+                const homeOnly = homeTeamsOnlyToggle.checked;
+                const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+
                 slipContext = {
                     type: 'Momentum Parlay',
-                    settings: `Min Odds: ${minOddsValue}`
+                    settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`
                 };
 
                 betSlip = [];
@@ -1322,6 +1332,10 @@
 
                     const highSpreadSports = ['Football', 'Basketball'];
                     const momentumTeam = probabilityShift > 0 ? 'away' : 'home';
+
+                    if (homeOnly && momentumTeam !== 'home') {
+                        return;
+                    }
 
                     if (highSpreadSports.includes(sport) && game.spread_away_odds && game.spread_home_odds) {
                         pick.label = `${getTeamInfo(game[`${momentumTeam}_team`]).name} ${game[`spread_${momentumTeam}`] > 0 ? '+' : ''}${game[`spread_${momentumTeam}`]}`;
@@ -1361,306 +1375,13 @@
 
                 renderBetSlip();
             }
-
-
-            function updateComboTotals() {
-                const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
-                let totalBets = 0;
-                let totalWager = 0;
-                const checkedBoxes = comboResultsContainer.querySelectorAll('.combo-checkbox:checked');
-                
-                checkedBoxes.forEach(box => {
-                    totalBets += parseInt(box.dataset.numBets);
-                    totalWager += parseFloat(box.dataset.cost);
-                });
-
-                document.getElementById('total-bets-cell').textContent = totalBets;
-                document.getElementById('total-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
-            }
-
-            function calculateAndDisplayComboAnalysis() {
-                const numGames = parseInt(comboTotalGamesInput.value) || betSlip.length;
-                const maxComboSize = Math.min(15, numGames);
-                
-                if (numGames < 2) {
-                    comboAvgOdds.textContent = '0.00';
-                    comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 games to analyze round robins.</p>`;
-                    return;
-                }
-
-                const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
-                const totalOdds = betSlip.reduce((sum, bet) => sum + bet.odds, 0);
-                const calculatedAvgOdds = betSlip.length > 0 ? totalOdds / betSlip.length : 0;
-                
-                comboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
-
-                const overrideAmericanOdds = parseFloat(comboOverrideOddsInput.value);
-                const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
-                const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
-                
-                let bestProfitPerWin = -Infinity;
-                let bestComboIndex = -1;
-                let comboData = [];
-
-                for (let k = 2; k <= maxComboSize; k++) {
-                    const numCombos = combinations(numGames, k);
-                    const costForThisComboSize = numCombos * wagerPerBet;
-                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
-
-                    let winsNeeded = -1;
-                    let profitAtBreakEven = 0;
-                    let profitPerWin = 0;
-
-                    for (let w = k; w <= numGames; w++) {
-                        const winningCombos = combinations(w, k);
-                        const totalWinnings = winningCombos * payoutPerWinningCombo;
-                        if (totalWinnings > costForThisComboSize) {
-                            winsNeeded = w;
-                            profitAtBreakEven = totalWinnings - costForThisComboSize;
-                            if(winsNeeded > 0) {
-                                profitPerWin = profitAtBreakEven / winsNeeded;
-                            }
-                            break;
-                        }
-                    }
-
-                    if(profitPerWin > bestProfitPerWin) {
-                        bestProfitPerWin = profitPerWin;
-                        bestComboIndex = k;
-                    }
-
-                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin});
-                }
-
-                let resultsHtml = `
-                    <table class="w-full text-sm text-left">
-                        <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
-                            <tr class="border-b" style="border-color: var(--border-color);">
-                                <th class="p-2 w-8"><input type="checkbox" id="select-all-combos"></th>
-                                <th class="p-2 font-semibold">Combo Size</th>
-                                <th class="p-2 font-semibold text-center">Cost</th>
-                                <th class="p-2 font-semibold text-center">Wins for Profit</th>
-                                <th class="p-2 font-semibold text-center">Profit @ B/E</th>
-                                <th class="p-2 font-semibold text-center text-yellow-500">Profit / Win</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                comboData.forEach(data => {
-                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin} = data;
-                    const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
-
-                    resultsHtml += `
-                        <tr class="border-b ${highlightClass}" style="border-color: var(--border-color);">
-                            <td class="p-2 text-center"><input type="checkbox" class="combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td>
-                            <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
-                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
-                            <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
-                                ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}
-                            </td>
-                             <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
-                                ${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}
-                            </td>
-                            <td class="p-2 text-center font-semibold ${profitPerWin <= 0 ? '' : 'text-yellow-500'}">
-                                ${winsNeeded !== -1 ? `$${profitPerWin.toFixed(2)}` : 'N/A'}
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                resultsHtml += `
-                        </tbody>
-                        <tfoot class="sticky bottom-0" style="background-color: var(--container-bg);">
-                            <tr class="border-t-2" style="border-color: var(--text-primary);">
-                                <td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td>
-                                <td id="total-wager-cell" class="p-2 font-bold text-center">$0.00</td>
-                                <td class="p-2 font-bold text-center" colspan="3"><span id="total-bets-cell">0</span> Bets</td>
-                            </tr>
-                        </tfoot>
-                    </table>`;
-                comboResultsContainer.innerHTML = resultsHtml;
-                updateComboTotals(); // Initial calculation
-            }
-
-            function calculateAndDisplayStrategyComboAnalysis(bets) {
-                const numGames = parseInt(strategyComboTotalGamesInput.value) || bets.length;
-                const maxComboSize = Math.min(15, numGames);
-                
-                if (numGames < 2) {
-                    strategyComboAvgOdds.textContent = '0.00';
-                    strategyComboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets in the generated parlay to analyze round robins.</p>`;
-                    return;
-                }
-
-                const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
-                const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
-                const calculatedAvgOdds = bets.length > 0 ? totalOdds / bets.length : 0;
-
-                strategyComboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
-                
-                const overrideAmericanOdds = parseFloat(strategyOverrideOddsInput.value);
-                const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
-                const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
-
-                let bestRoi = -Infinity;
-                let bestComboIndex = -1;
-                let comboData = [];
-
-                for (let k = 2; k <= maxComboSize; k++) {
-                    const numCombos = combinations(numGames, k);
-                    const costForThisComboSize = numCombos * wagerPerBet;
-                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
-
-                    let winsNeeded = -1;
-                    let profitAtBreakEven = 0;
-                    let roiAtBreakEven = 0;
-
-                    for (let w = k; w <= numGames; w++) {
-                        const winningCombos = combinations(w, k);
-                        const totalWinnings = winningCombos * payoutPerWinningCombo;
-                        if (totalWinnings > costForThisComboSize) {
-                            winsNeeded = w;
-                            profitAtBreakEven = totalWinnings - costForThisComboSize;
-                            if (costForThisComboSize > 0) {
-                                roiAtBreakEven = (profitAtBreakEven / costForThisComboSize) * 100;
-                            }
-                            break;
-                        }
-                    }
-
-                    if(roiAtBreakEven > bestRoi) {
-                        bestRoi = roiAtBreakEven;
-                        bestComboIndex = k;
-                    }
-
-                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven});
-                }
-
-
-                let resultsHtml = `
-                    <table class="w-full text-sm text-left">
-                        <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
-                            <tr class="border-b" style="border-color: var(--border-color);">
-                                <th class="p-2 w-8"><input type="checkbox" id="select-all-strategy-combos"></th>
-                                <th class="p-2 font-semibold">Combo Size</th>
-                                <th class="p-2 font-semibold text-center">Cost</th>
-                                <th class="p-2 font-semibold text-center">Wins for Profit</th>
-                                <th class="p-2 font-semibold text-center">Profit @ B/E</th>
-                                <th class="p-2 font-semibold text-center text-yellow-500">ROI @ B/E</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                comboData.forEach(data => {
-                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven} = data;
-                    const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
-
-                    resultsHtml += `
-                        <tr class="border-b ${highlightClass}" style="border-color: var(--border-color);">
-                            <td class="p-2 text-center"><input type="checkbox" class="strategy-combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td>
-                            <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
-                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
-                            <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
-                                ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}
-                            </td>
-                             <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
-                                ${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}
-                            </td>
-                            <td class="p-2 text-center font-semibold ${roiAtBreakEven <= 0 ? '' : 'text-yellow-500'}">
-                                ${winsNeeded !== -1 ? `+${roiAtBreakEven.toFixed(0)}%` : 'N/A'}
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                resultsHtml += `
-                        </tbody>
-                        <tfoot class="sticky bottom-0" style="background-color: var(--container-bg);">
-                            <tr class="border-t-2" style="border-color: var(--text-primary);">
-                                <td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td>
-                                <td id="total-strategy-wager-cell" class="p-2 font-bold text-center">$0.00</td>
-                                <td class="p-2 font-bold text-center" colspan="3"><span id="total-strategy-bets-cell">0</span> Bets</td>
-                            </tr>
-                        </tfoot>
-                    </table>`;
-                strategyComboResultsContainer.innerHTML = resultsHtml;
-                updateStrategyComboTotals();
-            }
             
-            function updateStrategyComboTotals() {
-                const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
-                let totalBets = 0;
-                let totalWager = 0;
-                const checkedBoxes = strategyComboResultsContainer.querySelectorAll('.strategy-combo-checkbox:checked');
-                
-                checkedBoxes.forEach(box => {
-                    totalBets += parseInt(box.dataset.numBets);
-                    totalWager += parseFloat(box.dataset.cost);
-                });
-
-                document.getElementById('total-strategy-bets-cell').textContent = totalBets;
-                document.getElementById('total-strategy-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
-            }
-
-            // --- EVENT HANDLERS ---
-            function updateCardFromSlider(gameIndex, sliderValue) {
-                const awayProbPercent = sliderValue / 10;
-                const awayInput = document.getElementById(`game-${gameIndex}-away-prob-input`);
-                const homeInput = document.getElementById(`game-${gameIndex}-home-prob-input`);
-                
-                if(document.activeElement !== awayInput) awayInput.value = awayProbPercent.toFixed(1);
-                if(document.activeElement !== homeInput) homeInput.value = (100 - awayProbPercent).toFixed(1);
-                
-                const card = document.getElementById(`game-${gameIndex}`);
-                if (card) {
-                    calculateAndDisplayResults(card, gameIndex, awayProbPercent / 100);
-                }
-                applyFiltersAndSorting();
-            }
-
-            function updateCardFromInput(gameIndex, changedInput, otherInput) {
-                let value = parseFloat(changedInput.value);
-                if (isNaN(value) || value < 0) value = 0;
-                if (value > 100) value = 100;
-
-                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
-                if (changedInput.id.includes('away')) {
-                    slider.value = value * 10;
-                    otherInput.value = (100 - value).toFixed(1);
-                } else { // home changed
-                    slider.value = (100 - value) * 10;
-                    otherInput.value = (100 - value).toFixed(1);
-                }
-
-                const card = document.getElementById(`game-${gameIndex}`);
-                if(card) {
-                    calculateAndDisplayResults(card, gameIndex, parseFloat(slider.value) / 1000);
-                }
-                applyFiltersAndSorting();
-            }
-            
-            function handleResetProbability(e) {
-                const gameIndex = e.dataset.gameIndex;
-                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
-                if (slider) {
-                    slider.value = slider.dataset.initialValue;
-                    slider.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
-            function handle50PercentClick(e) {
-                 const gameIndex = e.dataset.gameIndex;
-                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
-                if (slider) {
-                    slider.value = 500;
-                    slider.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
+            // FIX: This function was missing. It has been restored.
             function handleCopyClick() {
                 const minOddsValue = minOddsFilter.value || 'None';
+                const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
                 let textToCopy = `Audit the Odds (${appVersion}) - Filtered +EV Bets\n`;
-                textToCopy += `Settings: Min Odds: ${minOddsValue}\n\n`;
+                textToCopy += `Settings: Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}\n\n`;
 
                 const visibleCards = gameListContainer.querySelectorAll('.game-card');
                 visibleCards.forEach((card) => {
@@ -1672,6 +1393,12 @@
                         textToCopy += `------------------------------\n${awayTeamInfo.name} vs. ${homeTeamInfo.name}\n`;
                         card.querySelectorAll('.positive-ev').forEach(resultEl => {
                             const winnerName = resultEl.querySelector('strong').textContent;
+
+                            // If home only is checked, only copy the home team's EV
+                            if (homeTeamsOnlyToggle.checked && !winnerName.includes(homeTeamInfo.name)) {
+                                return;
+                            }
+                            
                             const evText = resultEl.querySelector('span.font-bold').textContent;
                             
                             let probabilityText = '';
@@ -1693,6 +1420,9 @@
 
             function handleGenerateParlayClick() {
                 const minOddsValue = minOddsFilter.value || 'None';
+                const homeOnly = homeTeamsOnlyToggle.checked;
+                const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+
                 const sportSettings = [];
                 document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
                     const sport = checkbox.dataset.sport;
@@ -1702,7 +1432,7 @@
 
                 slipContext = {
                     type: 'Strategy Parlay',
-                    settings: `Min Odds: ${minOddsValue} | ${sportSettings.join(', ')}`
+                    settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | ${sportSettings.join(', ')}`
                 };
 
                 const strategies = {};
@@ -1737,6 +1467,10 @@
 
                     const predictedWinner = awayEV > homeEV ? 'away' : 'home';
                     const finalPickTeam = (strategy === 'take') ? predictedWinner : (predictedWinner === 'away' ? 'home' : 'away');
+                    
+                    if (homeOnly && finalPickTeam !== 'home') {
+                        return;
+                    }
                     
                     let betToAdd = null;
                     const isSpreadSport = ['Football', 'Basketball'].includes(sport);
@@ -1862,6 +1596,127 @@
                  setTimeout(hideStrategyComboModal, 500);
             }
 
+            function updateComboTotals() {
+                const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
+                let totalBets = 0;
+                let totalWager = 0;
+                const checkedBoxes = comboResultsContainer.querySelectorAll('.combo-checkbox:checked');
+                
+                checkedBoxes.forEach(box => {
+                    totalBets += parseInt(box.dataset.numBets);
+                    totalWager += parseFloat(box.dataset.cost);
+                });
+
+                document.getElementById('total-bets-cell').textContent = totalBets;
+                document.getElementById('total-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
+            }
+            
+            // FIX: This function was missing. It has been restored.
+            function calculateAndDisplayComboAnalysis() {
+                const numGames = parseInt(comboTotalGamesInput.value) || betSlip.length;
+                const maxComboSize = Math.min(15, numGames);
+                
+                if (numGames < 2) {
+                    comboAvgOdds.textContent = '0.00';
+                    comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 games to analyze round robins.</p>`;
+                    return;
+                }
+
+                const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
+                const totalOdds = betSlip.reduce((sum, bet) => sum + bet.odds, 0);
+                const calculatedAvgOdds = betSlip.length > 0 ? totalOdds / betSlip.length : 0;
+                
+                comboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
+
+                const overrideAmericanOdds = parseFloat(comboOverrideOddsInput.value);
+                const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
+                const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
+                
+                let bestProfitPerWin = -Infinity;
+                let bestComboIndex = -1;
+                let comboData = [];
+
+                for (let k = 2; k <= maxComboSize; k++) {
+                    const numCombos = combinations(numGames, k);
+                    const costForThisComboSize = numCombos * wagerPerBet;
+                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
+
+                    let winsNeeded = -1;
+                    let profitAtBreakEven = 0;
+                    let profitPerWin = 0;
+
+                    for (let w = k; w <= numGames; w++) {
+                        const winningCombos = combinations(w, k);
+                        const totalWinnings = winningCombos * payoutPerWinningCombo;
+                        if (totalWinnings > costForThisComboSize) {
+                            winsNeeded = w;
+                            profitAtBreakEven = totalWinnings - costForThisComboSize;
+                            if(winsNeeded > 0) {
+                                profitPerWin = profitAtBreakEven / winsNeeded;
+                            }
+                            break;
+                        }
+                    }
+
+                    if(profitPerWin > bestProfitPerWin) {
+                        bestProfitPerWin = profitPerWin;
+                        bestComboIndex = k;
+                    }
+
+                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin});
+                }
+
+                let resultsHtml = `
+                    <table class="w-full text-sm text-left">
+                        <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
+                            <tr class="border-b" style="border-color: var(--border-color);">
+                                <th class="p-2 w-8"><input type="checkbox" id="select-all-combos"></th>
+                                <th class="p-2 font-semibold">Combo Size</th>
+                                <th class="p-2 font-semibold text-center">Cost</th>
+                                <th class="p-2 font-semibold text-center">Wins for Profit</th>
+                                <th class="p-2 font-semibold text-center">Profit @ B/E</th>
+                                <th class="p-2 font-semibold text-center text-yellow-500">Profit / Win</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                comboData.forEach(data => {
+                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin} = data;
+                    const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
+
+                    resultsHtml += `
+                        <tr class="border-b ${highlightClass}" style="border-color: var(--border-color);">
+                            <td class="p-2 text-center"><input type="checkbox" class="combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td>
+                            <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
+                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
+                            <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}
+                            </td>
+                             <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}
+                            </td>
+                            <td class="p-2 text-center font-semibold ${profitPerWin <= 0 ? '' : 'text-yellow-500'}">
+                                ${winsNeeded !== -1 ? `$${profitPerWin.toFixed(2)}` : 'N/A'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                resultsHtml += `
+                        </tbody>
+                        <tfoot class="sticky bottom-0" style="background-color: var(--container-bg);">
+                            <tr class="border-t-2" style="border-color: var(--text-primary);">
+                                <td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td>
+                                <td id="total-wager-cell" class="p-2 font-bold text-center">$0.00</td>
+                                <td class="p-2 font-bold text-center" colspan="3"><span id="total-bets-cell">0</span> Bets</td>
+                            </tr>
+                        </tfoot>
+                    </table>`;
+                comboResultsContainer.innerHTML = resultsHtml;
+                updateComboTotals(); // Initial calculation
+            }
+
             function copyToClipboard(text, buttonTextElement, originalText) {
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
@@ -1902,6 +1757,113 @@
                 selection.removeAllRanges();
                 document.body.removeChild(tempEl);
                 setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
+            }
+
+            // FIX: This function was missing. It has been restored.
+            function calculateAndDisplayStrategyComboAnalysis(bets) {
+                const numGames = parseInt(strategyComboTotalGamesInput.value) || bets.length;
+                const maxComboSize = Math.min(15, numGames);
+                
+                if (numGames < 2) {
+                    strategyComboAvgOdds.textContent = '0.00';
+                    strategyComboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets in the generated parlay to analyze round robins.</p>`;
+                    return;
+                }
+
+                const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
+                const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
+                const calculatedAvgOdds = bets.length > 0 ? totalOdds / bets.length : 0;
+
+                strategyComboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
+                
+                const overrideAmericanOdds = parseFloat(strategyOverrideOddsInput.value);
+                const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
+                const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
+
+                let bestRoi = -Infinity;
+                let bestComboIndex = -1;
+                let comboData = [];
+
+                for (let k = 2; k <= maxComboSize; k++) {
+                    const numCombos = combinations(numGames, k);
+                    const costForThisComboSize = numCombos * wagerPerBet;
+                    const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
+
+                    let winsNeeded = -1;
+                    let profitAtBreakEven = 0;
+                    let roiAtBreakEven = 0;
+
+                    for (let w = k; w <= numGames; w++) {
+                        const winningCombos = combinations(w, k);
+                        const totalWinnings = winningCombos * payoutPerWinningCombo;
+                        if (totalWinnings > costForThisComboSize) {
+                            winsNeeded = w;
+                            profitAtBreakEven = totalWinnings - costForThisComboSize;
+                            if (costForThisComboSize > 0) {
+                                roiAtBreakEven = (profitAtBreakEven / costForThisComboSize) * 100;
+                            }
+                            break;
+                        }
+                    }
+
+                    if(roiAtBreakEven > bestRoi) {
+                        bestRoi = roiAtBreakEven;
+                        bestComboIndex = k;
+                    }
+
+                    comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven});
+                }
+
+
+                let resultsHtml = `
+                    <table class="w-full text-sm text-left">
+                        <thead class="sticky top-0 z-10" style="background-color: var(--container-bg);">
+                            <tr class="border-b" style="border-color: var(--border-color);">
+                                <th class="p-2 w-8"><input type="checkbox" id="select-all-strategy-combos"></th>
+                                <th class="p-2 font-semibold">Combo Size</th>
+                                <th class="p-2 font-semibold text-center">Cost</th>
+                                <th class="p-2 font-semibold text-center">Wins for Profit</th>
+                                <th class="p-2 font-semibold text-center">Profit @ B/E</th>
+                                <th class="p-2 font-semibold text-center text-yellow-500">ROI @ B/E</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                comboData.forEach(data => {
+                    const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven} = data;
+                    const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
+
+                    resultsHtml += `
+                        <tr class="border-b ${highlightClass}" style="border-color: var(--border-color);">
+                            <td class="p-2 text-center"><input type="checkbox" class="strategy-combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td>
+                            <td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td>
+                            <td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td>
+                            <td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}
+                            </td>
+                             <td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">
+                                ${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}
+                            </td>
+                            <td class="p-2 text-center font-semibold ${roiAtBreakEven <= 0 ? '' : 'text-yellow-500'}">
+                                ${winsNeeded !== -1 ? `+${roiAtBreakEven.toFixed(0)}%` : 'N/A'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                resultsHtml += `
+                        </tbody>
+                        <tfoot class="sticky bottom-0" style="background-color: var(--container-bg);">
+                            <tr class="border-t-2" style="border-color: var(--text-primary);">
+                                <td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td>
+                                <td id="total-strategy-wager-cell" class="p-2 font-bold text-center">$0.00</td>
+                                <td class="p-2 font-bold text-center" colspan="3"><span id="total-strategy-bets-cell">0</span> Bets</td>
+                            </tr>
+                        </tfoot>
+                    </table>`;
+                strategyComboResultsContainer.innerHTML = resultsHtml;
+                updateStrategyComboTotals();
             }
 
             function attachEventListeners() {
@@ -1988,8 +1950,9 @@
              copySlipBtn.addEventListener('click', () => {
                 if (betSlip.length > 0) {
                     const minOddsValue = minOddsFilter.value || 'None';
+                    const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
                     if (slipContext.type === 'Custom Bet Slip') {
-                        slipContext.settings = `Min Odds: ${minOddsValue}`;
+                        slipContext.settings = `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`;
                     }
                     const colors = {
                         containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0'
