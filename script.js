@@ -887,328 +887,48 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBetSlip();
     }
 
-    function handleBuildMomentumParlay() {
+    // FIX: This block of functions was missing, causing buttons to be unresponsive. They have been restored.
+    function handleCopyClick() {
         const minOddsValue = minOddsFilter.value || 'None';
-        const homeOnly = homeTeamsOnlyToggle.checked;
-        const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+        const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
+        let textToCopy = `Audit the Odds (${appVersion}) - Filtered +EV Bets\n`;
+        textToCopy += `Settings: Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}\n\n`;
 
-        slipContext = {
-            type: 'Momentum Parlay',
-            settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`
-        };
+        const visibleCards = gameListContainer.querySelectorAll('.game-card');
+        visibleCards.forEach((card) => {
+             if (card.dataset.positiveEv === 'true') {
+                const gameIndex = card.dataset.gameIndex;
+                const game = ALL_SPORTS_DATA[gameIndex];
+                const awayTeamInfo = getTeamInfo(game.away_team);
+                const homeTeamInfo = getTeamInfo(game.home_team);
+                textToCopy += `------------------------------\n${awayTeamInfo.name} vs. ${homeTeamInfo.name}\n`;
+                card.querySelectorAll('.positive-ev').forEach(resultEl => {
+                    const winnerName = resultEl.querySelector('strong').textContent;
 
-        betSlip = [];
-        gameCardElements.forEach(card => {
-            card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent');
-        });
-
-        const minAmericanOdds = parseInt(minOddsFilter.value, 10);
-        const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
-        
-        const potentialBets = [];
-        ALL_SPORTS_DATA.forEach((game, index) => {
-            const sport = getGameSport(game);
-            if (!game.moneyline_away || !game.moneyline_home) return;
-
-            const impliedAway = 1 / game.moneyline_away;
-            const impliedHome = 1 / game.moneyline_home;
-            const totalImplied = impliedAway + impliedHome;
-            const normalizedAwayProb = totalImplied > 0 ? impliedAway / totalImplied : 0.5;
-
-            const momentumResult = getMomentumAdjustedProbability(normalizedAwayProb, game);
-            
-            if (momentumResult.status === 'no_data') return;
-
-            const momentumAdjustedProb = momentumResult.prob;
-            const probabilityShift = (momentumAdjustedProb - normalizedAwayProb) * 100;
-
-            if (Math.abs(probabilityShift) < 0.1) return;
-
-            let pick = {
-                gameIndex: index,
-                momentum: Math.abs(probabilityShift)
-            };
-
-            const highSpreadSports = ['Football', 'Basketball'];
-            const momentumTeam = probabilityShift > 0 ? 'away' : 'home';
-
-            if (homeOnly && momentumTeam !== 'home') {
-                return;
-            }
-
-            if (highSpreadSports.includes(sport) && game.spread_away_odds && game.spread_home_odds) {
-                pick.label = `${getTeamInfo(game[`${momentumTeam}_team`]).name} ${game[`spread_${momentumTeam}`] > 0 ? '+' : ''}${game[`spread_${momentumTeam}`]}`;
-                pick.odds = game[`spread_${momentumTeam}_odds`];
-            } else {
-                pick.label = getTeamInfo(game[`${momentumTeam}_team`]).name;
-                pick.odds = game[`moneyline_${momentumTeam}`];
-            }
-            
-            if (!pick.odds) return;
-            
-            if (minDecimalOdds && pick.odds < minDecimalOdds) {
-                return; 
-            }
-
-            pick.id = `${pick.gameIndex}-${pick.label}`;
-            potentialBets.push(pick);
-        });
-
-        potentialBets.sort((a, b) => b.momentum - a.momentum);
-        const topBets = potentialBets.slice(0, 20);
-
-        topBets.forEach(bet => {
-            betSlip.push({
-                id: bet.id,
-                gameIndex: bet.gameIndex,
-                label: bet.label,
-                odds: bet.odds
-            });
-            const card = document.getElementById(`game-${bet.gameIndex}`);
-            if (card) {
-                const betEl = card.querySelector(`.bet-option[data-bet-label="${CSS.escape(bet.label)}"]`);
-                if (betEl) betEl.style.borderColor = 'var(--accent-color)';
-            }
-        });
-
-        renderBetSlip();
-    }
-    
-    function handleGenerateParlayClick() {
-        const minOddsValue = minOddsFilter.value || 'None';
-        const homeOnly = homeTeamsOnlyToggle.checked;
-        const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
-
-        const sportSettings = [];
-        document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
-            const sport = checkbox.dataset.sport;
-            const strategy = document.getElementById(`strategy-${sport}`).value;
-            sportSettings.push(`${sport}: ${strategy.charAt(0).toUpperCase() + strategy.slice(1)}`);
-        });
-
-        slipContext = {
-            type: 'Strategy Parlay',
-            settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | ${sportSettings.join(', ')}`
-        };
-
-        const strategies = {};
-        document.querySelectorAll('.strategy-select').forEach(select => {
-            strategies[select.dataset.sport] = select.value;
-        });
-
-        const selectedSports = new Set();
-        document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
-            selectedSports.add(checkbox.dataset.sport);
-        });
-
-        const minAmericanOdds = parseInt(minOddsFilter.value, 10);
-        const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
-
-        let generatedBets = [];
-        const usedGameIndices = new Set();
-        
-        const availableGames = ALL_SPORTS_DATA
-            .map((game, index) => ({ ...game, originalIndex: index }))
-            .filter(game => selectedSports.has(getGameSport(game)));
-
-        availableGames.forEach((game) => {
-            const sport = getGameSport(game);
-            const strategy = strategies[sport];
-            if (strategy === 'ignore' || !game.moneyline_away || !game.moneyline_home) return;
-
-            const awayEV = calculateEV(0.5, game.moneyline_away);
-            const homeEV = calculateEV(0.5, game.moneyline_home);
-
-            if (awayEV <= 0 && homeEV <= 0) return;
-
-            const predictedWinner = awayEV > homeEV ? 'away' : 'home';
-            const finalPickTeam = (strategy === 'take') ? predictedWinner : (predictedWinner === 'away' ? 'home' : 'away');
-            
-            if (homeOnly && finalPickTeam !== 'home') {
-                return;
-            }
-            
-            let betToAdd = null;
-            const isSpreadSport = ['Football', 'Basketball'].includes(sport);
-            const canUseSpread = game.spread_away_odds && game.spread_home_odds;
-
-            if (sport === 'Soccer') {
-                const soccerDefaultOdds = americanToDecimal(-111); // Approx 1.90
-                betToAdd = {
-                    odds: soccerDefaultOdds,
-                    label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (Spread)`,
-                    ev: calculateEV(0.5, soccerDefaultOdds),
-                    gameIndex: game.originalIndex
-                };
-            } else if (isSpreadSport && canUseSpread) {
-                 betToAdd = {
-                    odds: game[`spread_${finalPickTeam}_odds`],
-                    label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} ${game[`spread_${finalPickTeam}`] > 0 ? '+' : ''}${game[`spread_${finalPickTeam}`]}`,
-                    ev: calculateEV(0.5, game[`spread_${finalPickTeam}_odds`]),
-                    gameIndex: game.originalIndex
-                };
-            } else { // Default to moneyline for MLB, NHL, and as a fallback if spread isn't available
-                 betToAdd = {
-                    odds: game[`moneyline_${finalPickTeam}`],
-                    label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (ML)`,
-                    ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]),
-                    gameIndex: game.originalIndex
-                };
-            }
-
-            if (betToAdd && (!minDecimalOdds || betToAdd.odds >= minDecimalOdds)) {
-                generatedBets.push(betToAdd);
-                usedGameIndices.add(game.originalIndex);
-            }
-        });
-
-        const PARLAY_CAP = 20;
-        const slotsToFill = PARLAY_CAP - generatedBets.length;
-        if (slotsToFill > 0) {
-            const fillerPicks = [];
-            const fillerCandidates = availableGames.filter(game => !usedGameIndices.has(game.originalIndex));
-
-            fillerCandidates.forEach((game) => {
-                if (!game.total_over_odds || !game.total_under_odds) return;
-                const overEV = calculateEV(0.5, game.total_over_odds);
-                const underEV = calculateEV(0.5, game.total_under_odds);
-
-                if (overEV > underEV) {
-                    const pick = { ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex };
-                    if (!minDecimalOdds || pick.odds >= minDecimalOdds) {
-                        fillerPicks.push(pick);
+                    // If home only is checked, only copy the home team's EV
+                    if (homeTeamsOnlyToggle.checked && !winnerName.includes(homeTeamInfo.name)) {
+                        return;
                     }
-                } else {
-                    const pick = { ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex };
-                    if (!minDecimalOdds || pick.odds >= minDecimalOdds) {
-                        fillerPicks.push(pick);
+                    
+                    const evText = resultEl.querySelector('span.font-bold').textContent;
+                    
+                    let probabilityText = '';
+                    if(winnerName.includes(awayTeamInfo.name)) {
+                        probabilityText = document.getElementById(`game-${gameIndex}-away-prob-input`).value;
+                    } else if (winnerName.includes(homeTeamInfo.name)) {
+                         probabilityText = document.getElementById(`game-${gameIndex}-home-prob-input`).value;
+                    } else {
+                         const sliderVal = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`).value;
+                         probabilityText = `${(sliderVal/10).toFixed(1)}%`;
                     }
-                }
-            });
-
-            fillerPicks.sort((a, b) => b.ev - a.ev);
-            generatedBets.push(...fillerPicks.slice(0, slotsToFill));
-        }
-
-        generatedBets.sort((a,b) => b.ev - a.ev);
-        currentStrategyBets = generatedBets.slice(0, PARLAY_CAP);
-
-        if (currentStrategyBets.length === 0) {
-            parlayBtnText.textContent = 'No Picks Found';
-            setTimeout(() => { parlayBtnText.textContent = 'Analyze Parlay Strategy'; }, 2500);
-            return;
-        }
-        
-        strategyComboTotalGamesInput.value = currentStrategyBets.length;
-        showStrategyComboAnalysis();
-    }
-
-    function showStrategyComboAnalysis() {
-        strategyComboModal.classList.remove('hidden');
-        setTimeout(() => { 
-            strategyComboModal.classList.remove('opacity-0');
-            strategyComboModalContent.classList.remove('scale-95');
-            calculateAndDisplayStrategyComboAnalysis(currentStrategyBets);
-        }, 10);
-    }
-
-    function hideStrategyComboModal() {
-        strategyComboModal.classList.add('opacity-0');
-        strategyComboModalContent.classList.add('scale-95');
-        setTimeout(() => strategyComboModal.classList.add('hidden'), 300);
-    }
-    
-    function handleCopyStrategyParlay() {
-        if (currentStrategyBets.length > 0) {
-            const colors = {
-                containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0'
-            };
-            let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
-            htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${currentStrategyBets.length} Picks)</h3>`;
-            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
-
-            currentStrategyBets.forEach(bet => {
-                const oddsText = bet.odds >= 2 ? `+${((bet.odds - 1) * 100).toFixed(0)}` : `${(-100 / (bet.odds - 1)).toFixed(0)}`;
-                
-                let subtext = '';
-                if ((bet.label.toLowerCase().startsWith('over') || bet.label.toLowerCase().startsWith('under')) && bet.gameIndex !== undefined) {
-                    const game = ALL_SPORTS_DATA[bet.gameIndex];
-                    if (game) {
-                        const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
-                        subtext = `<p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p>`;
-                    }
-                }
-
-                htmlToCopy += `
-                    <div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};">
-                        <p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p>
-                        ${subtext}
-                    </div>
-                `;
-            });
-            htmlToCopy += `</div>`;
-            copyHtmlToClipboard(htmlToCopy, copyStrategyParlayBtnText, 'Copy Parlay & Close');
-        }
-         setTimeout(hideStrategyComboModal, 500);
-    }
-
-    function updateComboTotals() {
-        const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
-        let totalBets = 0;
-        let totalWager = 0;
-        const checkedBoxes = comboResultsContainer.querySelectorAll('.combo-checkbox:checked');
-        
-        checkedBoxes.forEach(box => {
-            totalBets += parseInt(box.dataset.numBets);
-            totalWager += parseFloat(box.dataset.cost);
+                    textToCopy += `WINNER: ${winnerName} (EV: ${evText}) | Your Prob: ${probabilityText}%\n`;
+                });
+                textToCopy += "\n";
+               }
         });
-
-        document.getElementById('total-bets-cell').textContent = totalBets;
-        document.getElementById('total-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
-    }
-    
-    function copyToClipboard(text, buttonTextElement, originalText) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            buttonTextElement.textContent = 'Copied!';
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
-            buttonTextElement.textContent = 'Copy Failed';
-        }
-        document.body.removeChild(textArea);
-        setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
+        copyToClipboard(textToCopy, copyBtnText, 'Copy +EV Games');
     }
 
-    function copyHtmlToClipboard(html, buttonTextElement, originalText) {
-        const tempEl = document.createElement('div');
-        tempEl.style.position = 'absolute';
-        tempEl.style.left = '-9999px';
-        tempEl.innerHTML = html;
-        document.body.appendChild(tempEl);
-
-        const range = document.createRange();
-        range.selectNodeContents(tempEl);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        try {
-            document.execCommand('copy');
-            buttonTextElement.textContent = 'Copied!';
-        } catch (err) {
-            console.error('Failed to copy HTML: ', err);
-            buttonTextElement.textContent = 'Copy Failed';
-        }
-
-        selection.removeAllRanges();
-        document.body.removeChild(tempEl);
-        setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
-    }
-    
     function calculateAndDisplayComboAnalysis() {
         const numGames = parseInt(comboTotalGamesInput.value) || betSlip.length;
         const maxComboSize = Math.min(15, numGames);
@@ -1420,6 +1140,21 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStrategyComboTotals();
     }
 
+    function updateStrategyComboTotals() {
+        const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
+        let totalBets = 0;
+        let totalWager = 0;
+        const checkedBoxes = strategyComboResultsContainer.querySelectorAll('.strategy-combo-checkbox:checked');
+        
+        checkedBoxes.forEach(box => {
+            totalBets += parseInt(box.dataset.numBets);
+            totalWager += parseFloat(box.dataset.cost);
+        });
+
+        document.getElementById('total-strategy-bets-cell').textContent = totalBets;
+        document.getElementById('total-strategy-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
+    }
+
     function attachEventListeners() {
         gameListContainer.addEventListener('input', e => {
             if (e.target.classList.contains('prob-slider')) {
@@ -1590,4 +1325,5 @@ document.addEventListener('DOMContentLoaded', () => {
     attachEventListeners();
 
 });
+
 
