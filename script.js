@@ -823,16 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStrategyComboTotals();
     }
 
-    function updateStrategyComboTotals() {
-        let totalBets = 0, totalWager = 0;
-        strategyComboResultsContainer.querySelectorAll('.strategy-combo-checkbox:checked').forEach(box => {
-            totalBets += parseInt(box.dataset.numBets);
-            totalWager += parseFloat(box.dataset.cost);
-        });
-        document.getElementById('total-strategy-bets-cell').textContent = totalBets;
-        document.getElementById('total-strategy-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
-    }
-
     function attachEventListeners() {
         console.log("Attaching dynamic event listeners for game cards...");
         gameListContainer.addEventListener('input', e => {
@@ -1018,6 +1008,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     attachEventListeners();
 
-    console.log("script.js loaded and parsed successfully.");
+    console.log("script.js loaded and all initial event listeners attached successfully.");
 });
 
