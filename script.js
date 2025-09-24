@@ -15,13 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {object} An object containing the adjusted probability and a status.
      */
     function getMomentumAdjustedProbability(currentGame, historicalGame) {
-        if (!historicalGame) {
-            return { prob: getNoVigProb(currentGame.moneyline_away, currentGame.moneyline_home), status: 'no_data' };
-        }
-
         const currentAwayProb = getNoVigProb(currentGame.moneyline_away, currentGame.moneyline_home);
+
+        if (!historicalGame) {
+            return { prob: currentAwayProb, status: 'no_data' };
+        }
         
-        // Find a matching bookmaker in the historical data to get opening odds
         const historicalBookmaker = historicalGame.bookmakers?.[0];
         if (!historicalBookmaker) {
              return { prob: currentAwayProb, status: 'no_data' };
@@ -39,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const probabilityShift = currentAwayProb - openingAwayProb;
         
+        // The adjusted probability is the current probability plus the shift, which amplifies the trend.
         let adjustedProb = currentAwayProb + probabilityShift;
         adjustedProb = Math.max(0.01, Math.min(0.99, adjustedProb));
 
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- DOM ELEMENTS (omitted for brevity, assume they are defined as before) ---
+    // --- DOM ELEMENTS ---
     const gameListContainer = document.getElementById('game-list-container');
     const processingState = document.getElementById('processingState');
     const processingText = document.getElementById('processing-text');
@@ -127,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameCardElements = [];
     let betSlip = [];
     let slipContext = { type: 'Custom Bet Slip', settings: '' };
-
 	
     const applyTheme = (theme) => {
         if (theme === 'dark') {
@@ -386,11 +385,690 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
-    // --- All other functions (showError, resetApp, updateSummaryDashboard, displayGames, etc.) are included below ---
-    // --- They are omitted here for brevity but are included in the complete file. ---
+    function showError(message, isPartial = false) {
+        errorState.innerHTML = message;
+        errorState.classList.remove('hidden');
+        if (!isPartial) {
+            processingState.classList.add('hidden');
+            analyzeSection.classList.remove('hidden');
+        }
+    }
     
-    // ... [The rest of the functions from the previous version are included here]
+    function resetApp() {
+        resultsArea.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+        ALL_SPORTS_DATA = []; 
+        gameCardElements = [];
+        gameListContainer.innerHTML = '';
+        errorState.classList.add('hidden');
+        evFilterToggle.checked = false;
+        sortSelect.value = 'default';
+        minOddsFilter.value = '';
+        betSlip = [];
+        slipContext = { type: 'Custom Bet Slip', settings: '' };
+        renderBetSlip();
+    }
     
+    function updateSummaryDashboard() {
+        const totalGames = ALL_SPORTS_DATA.length;
+        let positiveEvOpps = 0, maxEv = 0;
+        gameCardElements.forEach(card => {
+            if (card.dataset.positiveEv === 'true') positiveEvOpps++;
+            maxEv = Math.max(maxEv, parseFloat(card.dataset.maxEv) || 0);
+        });
+        const impliedOdds = maxEv > 0 ? (1 / (1 - maxEv)) : 'N/A';
+        const americanOdds = maxEv > 0 ? decimalToAmerican(impliedOdds) : 'N/A';
+        summaryDashboard.innerHTML = `<div class="stat-card"><div class="text-sm text-secondary">Total Games</div><div class="text-2xl font-bold">${totalGames}</div></div><div class="stat-card"><div class="text-sm text-secondary">+EV Opportunities</div><div class="text-2xl font-bold text-green-500">${positiveEvOpps}</div></div><div class="stat-card"><div class="text-sm text-secondary">Highest EV Found</div><div class="text-2xl font-bold text-green-500">${maxEv > 0 ? `+${(maxEv * 100).toFixed(2)}%` : '0%'}</div></div><div class="stat-card"><div class="text-sm text-secondary">Implied Odds</div><div class="text-2xl font-bold">${americanOdds}</div></div>`;
+    }
+    
+    function displayGames(games) {
+        gameListContainer.innerHTML = '';
+        gameCardElements = [];
+        if (games && games.length > 0) {
+            soccerMarketControl.classList.toggle('hidden', !games.some(game => getGameSport(game) === 'Soccer'));
+            games.forEach((game, index) => {
+                const card = createGameCard(game, index);
+                gameCardElements.push(card);
+                calculateAndDisplayResults(card, index, parseFloat(card.querySelector('.prob-slider').value) / 1000);
+            });
+            resultsArea.classList.remove('hidden');
+            if (gameCardElements.length > 0 && !strategyOptionsContainer.hasChildNodes()) {
+                displayStrategyControls(games);
+            }
+            applyFiltersAndSorting();
+        } else {
+            showError("No valid games could be displayed from the API response.");
+            resultsArea.classList.add('hidden');
+        }
+    }
+    
+    function displayStrategyControls(games) {
+        const sports = [...new Set(games.map(getGameSport))].filter(s => s !== 'Unknown').sort();
+        strategyOptionsContainer.innerHTML = '';
+        if (sports.length > 0) {
+            sports.forEach(sport => {
+                const controlEl = document.createElement('div');
+                controlEl.className = 'flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800';
+                controlEl.innerHTML = `<input type="checkbox" id="sport-toggle-${sport}" data-sport="${sport}" class="sport-toggle-checkbox h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" checked><label for="sport-toggle-${sport}" class="text-sm font-medium flex-1">${sport}</label><select id="strategy-${sport}" data-sport="${sport}" class="strategy-select text-sm rounded-md p-1 w-24" style="background-color: var(--input-bg); border: 1px solid var(--border-color);"><option value="take">Take</option><option value="fade">Fade</option><option value="ignore">Ignore</option></select>`;
+                strategyOptionsContainer.appendChild(controlEl);
+                if (sport === 'Baseball') {
+                    controlEl.querySelector('select').value = 'take';
+                }
+            });
+            strategyControls.classList.remove('hidden');
+            generateParlayBtn.disabled = false;
+        } else {
+            strategyControls.classList.add('hidden');
+            generateParlayBtn.disabled = true;
+        }
+    }
+
+    function calculateAndDisplayResults(card, gameIndex, awayProb) {
+        const game = ALL_SPORTS_DATA[gameIndex];
+        if (!card || !game) return;
+        const resultsContainer = card.querySelector(`#game-${gameIndex}-results`);
+        resultsContainer.innerHTML = '';
+        const homeProb = 1 - awayProb;
+        let maxPositiveEv = 0, hasPositiveEv = false;
+        const createResultElement = (ev, label, odds) => {
+            if (!odds) return document.createDocumentFragment();
+            if (ev > 0) {
+                hasPositiveEv = true;
+                maxPositiveEv = Math.max(maxPositiveEv, ev);
+            }
+            const el = document.createElement('div');
+            el.className = `result-display items-center ${ev > 0 ? 'positive-ev' : 'negative-ev'}`;
+            const oddsText = decimalToAmerican(odds);
+            const evText = `${ev > 0 ? '+' : ''}${(ev * 100).toFixed(2)}%`;
+            const barWidth = Math.min(Math.abs(ev) * 100 * 4, 100);
+            let barColor = ev > 0.10 ? '#16a34a' : ev > 0.05 ? '#22c55e' : ev > 0 ? '#4ade80' : '#ef4444';
+            el.innerHTML = `<div class="flex-grow"><strong>${label}</strong><span class="text-xs text-secondary ml-2">${oddsText}</span></div><div class="flex items-center flex-shrink-0"><span class="font-bold w-16 text-right">${evText}</span><div class="w-12 h-1.5 ml-2 rounded-full overflow-hidden" style="background-color: var(--input-bg);"><div class="h-full rounded-full" style="width: ${barWidth}%; background-color: ${barColor};"></div></div></div>`;
+            el.classList.add('bet-option', 'cursor-pointer', 'transition-all', 'hover:ring-2', 'hover:ring-offset-2');
+            el.dataset.betLabel = label; el.dataset.betOdds = odds; el.dataset.ev = ev;
+            return el;
+        };
+        if (game.moneyline_away && game.moneyline_home) {
+            resultsContainer.appendChild(createResultElement(calculateEV(awayProb, game.moneyline_away), getTeamInfo(game.away_team).name, game.moneyline_away));
+            resultsContainer.appendChild(createResultElement(calculateEV(homeProb, game.moneyline_home), getTeamInfo(game.home_team).name, game.moneyline_home));
+        }
+        if (game.spread_away_odds && game.spread_home_odds) {
+            resultsContainer.appendChild(createResultElement(calculateEV(awayProb, game.spread_away_odds), `${getTeamInfo(game.away_team).name} ${game.spread_away > 0 ? '+' : ''}${game.spread_away}`, game.spread_away_odds));
+            resultsContainer.appendChild(createResultElement(calculateEV(homeProb, game.spread_home_odds), `${getTeamInfo(game.home_team).name} ${game.spread_home > 0 ? '+' : ''}${game.spread_home}`, game.spread_home_odds));
+        }
+        if (game.total_over_odds && game.total_under_odds) {
+            resultsContainer.appendChild(createResultElement(calculateEV(0.5, game.total_over_odds), `Over ${game.total_over}`, game.total_over_odds));
+            resultsContainer.appendChild(createResultElement(calculateEV(0.5, game.total_under_odds), `Under ${game.total_under}`, game.total_under_odds));
+        }
+        card.dataset.maxEv = maxPositiveEv; card.dataset.positiveEv = hasPositiveEv;
+    }
+
+    function applyFiltersAndSorting() {
+        const showPositiveOnly = evFilterToggle.checked;
+        const sortBy = sortSelect.value;
+        const minAmericanOdds = parseInt(minOddsFilter.value, 10);
+        const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
+        let cardsToDisplay = [...gameCardElements];
+        if (showPositiveOnly) cardsToDisplay = cardsToDisplay.filter(card => card.dataset.positiveEv === 'true');
+        if (minDecimalOdds) {
+            cardsToDisplay = cardsToDisplay.filter(card => Array.from(card.querySelectorAll('.bet-option')).some(option => parseFloat(option.dataset.betOdds) >= minDecimalOdds));
+        }
+        if (sortBy === 'highest-ev') {
+            cardsToDisplay.sort((a, b) => parseFloat(b.dataset.maxEv) - parseFloat(a.dataset.maxEv));
+        } else {
+            cardsToDisplay.sort((a, b) => parseInt(a.dataset.gameIndex) - parseInt(b.dataset.gameIndex));
+        }
+        gameListContainer.innerHTML = '';
+        cardsToDisplay.forEach(card => gameListContainer.appendChild(card));
+        buildMomentumParlayBtn.disabled = !ALL_SPORTS_DATA.some(game => game.historicalData);
+        copyBtn.disabled = !gameCardElements.some(card => card.dataset.positiveEv === 'true');
+        updateSummaryDashboard();
+    }
+
+    function renderBetSlip() {
+        const hasBets = betSlip.length > 0;
+        betSlipArea.classList.toggle('hidden', !hasBets);
+        emptySlipMessage.classList.toggle('hidden', hasBets);
+        betSlipControls.classList.toggle('hidden', !hasBets);
+        betSlipList.innerHTML = '';
+        betSlip.forEach(bet => {
+            const betEl = document.createElement('div');
+            betEl.className = 'p-2 text-xs rounded-lg flex items-center justify-between';
+            betEl.style.backgroundColor = 'var(--accent-color-light)';
+            const game = ALL_SPORTS_DATA[bet.gameIndex];
+            const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
+            const oddsText = decimalToAmerican(bet.odds);
+            betEl.innerHTML = `<div class="flex-grow pr-2"><p class="font-bold truncate" style="color: var(--accent-text-dark);">${bet.label}</p><p class="text-secondary truncate">${matchup}</p></div><div class="flex-shrink-0 font-bold text-center w-12" style="color: var(--accent-text-dark);">${oddsText}</div><button data-bet-id="${bet.id}" class="remove-bet-btn p-1 ml-1 rounded-full hover:bg-red-200 dark:hover:bg-red-800 flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>`;
+            betSlipList.appendChild(betEl);
+        });
+        comboAnalysisBtn.disabled = betSlip.length < 2;
+    }
+
+    function handleBetClick(target) {
+        slipContext = { type: 'Custom Bet Slip', settings: '' };
+        const gameCard = target.closest('.game-card');
+        const gameIndex = gameCard.dataset.gameIndex;
+        const { betLabel, betOdds } = target.dataset;
+        const betId = `${gameIndex}-${betLabel}`;
+        const existingBetIndex = betSlip.findIndex(b => b.gameIndex === gameIndex);
+        if (existingBetIndex > -1) {
+            const oldBet = betSlip[existingBetIndex];
+            if (oldBet.id !== betId) {
+                const oldBetEl = gameCard.querySelector(`.bet-option[data-bet-label="${CSS.escape(oldBet.label)}"]`);
+                if (oldBetEl) oldBetEl.style.borderColor = 'transparent';
+            }
+            betSlip.splice(existingBetIndex, 1);
+        }
+        const isAlreadySelected = target.style.borderColor !== 'transparent' && target.style.borderColor !== '';
+        if (!isAlreadySelected) {
+            if (betSlip.length >= 20) {
+                console.warn("Bet slip is full. Maximum 20 bets allowed.");
+                return;
+            }
+            betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds) });
+            target.style.borderColor = 'var(--accent-color)';
+        } else {
+            target.style.borderColor = 'transparent';
+        }
+        renderBetSlip();
+    }
+
+    function handleBuildMomentumParlay() {
+        console.log("Build Momentum Parlay button clicked.");
+        const minOddsValue = minOddsFilter.value || 'None';
+        const homeOnly = homeTeamsOnlyToggle.checked;
+        const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+        slipContext = { type: 'Momentum Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}` };
+        betSlip = [];
+        gameCardElements.forEach(card => card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent'));
+        const minDecimalOdds = !isNaN(parseInt(minOddsFilter.value, 10)) ? americanToDecimal(parseInt(minOddsFilter.value, 10)) : null;
+        const potentialBets = [];
+        ALL_SPORTS_DATA.forEach((game, index) => {
+            const sport = getGameSport(game);
+            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+            if (momentumResult.status === 'no_data') return;
+            
+            const probabilityShift = momentumResult.shift;
+            if (Math.abs(probabilityShift) < 0.001) return; // Ignore negligible momentum (0.1%)
+
+            const momentumTeam = probabilityShift > 0 ? 'away' : 'home';
+            if (homeOnly && momentumTeam !== 'home') return;
+
+            let pick = { gameIndex: index, momentum: Math.abs(probabilityShift) };
+            const highSpreadSports = ['Football', 'Basketball'];
+            if (highSpreadSports.includes(sport) && game.spread_away_odds && game.spread_home_odds) {
+                pick.label = `${getTeamInfo(game[`${momentumTeam}_team`]).name} ${game[`spread_${momentumTeam}`] > 0 ? '+' : ''}${game[`spread_${momentumTeam}`]}`;
+                pick.odds = game[`spread_${momentumTeam}_odds`];
+            } else {
+                pick.label = getTeamInfo(game[`${momentumTeam}_team`]).name;
+                pick.odds = game[`moneyline_${momentumTeam}`];
+            }
+            if (!pick.odds || (minDecimalOdds && pick.odds < minDecimalOdds)) return;
+            pick.id = `${pick.gameIndex}-${pick.label}`;
+            potentialBets.push(pick);
+        });
+        potentialBets.sort((a, b) => b.momentum - a.momentum);
+        const topBets = potentialBets.slice(0, 20);
+        topBets.forEach(bet => {
+            betSlip.push({ id: bet.id, gameIndex: bet.gameIndex, label: bet.label, odds: bet.odds });
+            const card = document.getElementById(`game-${bet.gameIndex}`);
+            if (card) {
+                const betEl = card.querySelector(`.bet-option[data-bet-label="${CSS.escape(bet.label)}"]`);
+                if (betEl) betEl.style.borderColor = 'var(--accent-color)';
+            }
+        });
+        renderBetSlip();
+    }
+    
+    function handleGenerateParlayClick() {
+        console.log("Analyze Parlay Strategy button clicked.");
+        const minOddsValue = minOddsFilter.value || 'None';
+        const homeOnly = homeTeamsOnlyToggle.checked;
+        const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+        const sportSettings = [];
+        document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
+            const sport = checkbox.dataset.sport;
+            const strategy = document.getElementById(`strategy-${sport}`).value;
+            sportSettings.push(`${sport}: ${strategy.charAt(0).toUpperCase() + strategy.slice(1)}`);
+        });
+        slipContext = { type: 'Strategy Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | ${sportSettings.join(', ')}` };
+        const strategies = {};
+        document.querySelectorAll('.strategy-select').forEach(select => strategies[select.dataset.sport] = select.value);
+        const selectedSports = new Set(Array.from(document.querySelectorAll('.sport-toggle-checkbox:checked')).map(cb => cb.dataset.sport));
+        const minDecimalOdds = !isNaN(parseInt(minOddsFilter.value, 10)) ? americanToDecimal(parseInt(minOddsFilter.value, 10)) : null;
+        let generatedBets = [];
+        const usedGameIndices = new Set();
+        const availableGames = ALL_SPORTS_DATA.map((game, index) => ({ ...game, originalIndex: index })).filter(game => selectedSports.has(getGameSport(game)));
+
+        availableGames.forEach((game) => {
+            const sport = getGameSport(game);
+            const strategy = strategies[sport];
+            if (strategy === 'ignore' || !game.moneyline_away || !game.moneyline_home) return;
+            const awayEV = calculateEV(0.5, game.moneyline_away);
+            const homeEV = calculateEV(0.5, game.moneyline_home);
+            if (awayEV <= 0 && homeEV <= 0) return;
+            const predictedWinner = awayEV > homeEV ? 'away' : 'home';
+            const finalPickTeam = (strategy === 'take') ? predictedWinner : (predictedWinner === 'away' ? 'home' : 'away');
+            if (homeOnly && finalPickTeam !== 'home') return;
+            let betToAdd = null;
+            const isSpreadSport = ['Football', 'Basketball'].includes(sport);
+            const canUseSpread = game.spread_away_odds && game.spread_home_odds;
+            if (sport === 'Soccer') {
+                const soccerDefaultOdds = americanToDecimal(-111);
+                betToAdd = { odds: soccerDefaultOdds, label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (Spread)`, ev: calculateEV(0.5, soccerDefaultOdds), gameIndex: game.originalIndex };
+            } else if (isSpreadSport && canUseSpread) {
+                 betToAdd = { odds: game[`spread_${finalPickTeam}_odds`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} ${game[`spread_${finalPickTeam}`] > 0 ? '+' : ''}${game[`spread_${finalPickTeam}`]}`, ev: calculateEV(0.5, game[`spread_${finalPickTeam}_odds`]), gameIndex: game.originalIndex };
+            } else {
+                 betToAdd = { odds: game[`moneyline_${finalPickTeam}`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (ML)`, ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]), gameIndex: game.originalIndex };
+            }
+            if (betToAdd && (!minDecimalOdds || betToAdd.odds >= minDecimalOdds)) {
+                generatedBets.push(betToAdd);
+                usedGameIndices.add(game.originalIndex);
+            }
+        });
+        const PARLAY_CAP = 20;
+        const slotsToFill = PARLAY_CAP - generatedBets.length;
+        if (slotsToFill > 0) {
+            const fillerPicks = [];
+            const fillerCandidates = availableGames.filter(game => !usedGameIndices.has(game.originalIndex));
+            fillerCandidates.forEach((game) => {
+                if (!game.total_over_odds || !game.total_under_odds) return;
+                const overEV = calculateEV(0.5, game.total_over_odds);
+                const underEV = calculateEV(0.5, game.total_under_odds);
+                const pick = (overEV > underEV) ? { ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex } : { ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex };
+                if (!minDecimalOdds || pick.odds >= minDecimalOdds) fillerPicks.push(pick);
+            });
+            fillerPicks.sort((a, b) => b.ev - a.ev);
+            generatedBets.push(...fillerPicks.slice(0, slotsToFill));
+        }
+        generatedBets.sort((a,b) => b.ev - a.ev);
+        currentStrategyBets = generatedBets.slice(0, PARLAY_CAP);
+        if (currentStrategyBets.length === 0) {
+            parlayBtnText.textContent = 'No Picks Found';
+            setTimeout(() => { parlayBtnText.textContent = 'Analyze Parlay Strategy'; }, 2500);
+            return;
+        }
+        strategyComboTotalGamesInput.value = currentStrategyBets.length;
+        showStrategyComboAnalysis();
+    }
+
+    function showStrategyComboAnalysis() {
+        strategyComboModal.classList.remove('hidden');
+        setTimeout(() => { 
+            strategyComboModal.classList.remove('opacity-0');
+            strategyComboModalContent.classList.remove('scale-95');
+            calculateAndDisplayStrategyComboAnalysis(currentStrategyBets);
+        }, 10);
+    }
+
+    function hideStrategyComboModal() {
+        strategyComboModal.classList.add('opacity-0');
+        strategyComboModalContent.classList.add('scale-95');
+        setTimeout(() => strategyComboModal.classList.add('hidden'), 300);
+    }
+    
+    function handleCopyStrategyParlay() {
+        if (currentStrategyBets.length > 0) {
+            const colors = { containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0' };
+            let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
+            htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${currentStrategyBets.length} Picks)</h3>`;
+            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
+            currentStrategyBets.forEach(bet => {
+                const oddsText = decimalToAmerican(bet.odds);
+                let subtext = '';
+                if ((bet.label.toLowerCase().startsWith('over') || bet.label.toLowerCase().startsWith('under')) && bet.gameIndex !== undefined) {
+                    const game = ALL_SPORTS_DATA[bet.gameIndex];
+                    if (game) subtext = `<p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}</p>`;
+                }
+                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p>${subtext}</div>`;
+            });
+            htmlToCopy += `</div>`;
+            copyHtmlToClipboard(htmlToCopy, copyStrategyParlayBtnText, 'Copy Parlay & Close');
+        }
+         setTimeout(hideStrategyComboModal, 500);
+    }
+
+    function updateComboTotals() {
+        let totalBets = 0, totalWager = 0;
+        comboResultsContainer.querySelectorAll('.combo-checkbox:checked').forEach(box => {
+            totalBets += parseInt(box.dataset.numBets);
+            totalWager += parseFloat(box.dataset.cost);
+        });
+        document.getElementById('total-bets-cell').textContent = totalBets;
+        document.getElementById('total-wager-cell').textContent = `$${totalWager.toFixed(2)}`;
+    }
+    
+    function copyToClipboard(text, buttonTextElement, originalText) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            buttonTextElement.textContent = 'Copied!';
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            buttonTextElement.textContent = 'Copy Failed';
+        }
+        document.body.removeChild(textArea);
+        setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
+    }
+
+    function copyHtmlToClipboard(html, buttonTextElement, originalText) {
+        const tempEl = document.createElement('div');
+        tempEl.style.position = 'absolute';
+        tempEl.style.left = '-9999px';
+        tempEl.innerHTML = html;
+        document.body.appendChild(tempEl);
+        const range = document.createRange();
+        range.selectNodeContents(tempEl);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        try {
+            document.execCommand('copy');
+            buttonTextElement.textContent = 'Copied!';
+        } catch (err) {
+            console.error('Failed to copy HTML: ', err);
+            buttonTextElement.textContent = 'Copy Failed';
+        }
+        selection.removeAllRanges();
+        document.body.removeChild(tempEl);
+        setTimeout(() => { buttonTextElement.textContent = originalText; }, 2000);
+    }
+    
+    function calculateAndDisplayComboAnalysis() {
+        const numGames = parseInt(comboTotalGamesInput.value) || betSlip.length;
+        const maxComboSize = Math.min(15, numGames);
+        
+        if (numGames < 2) {
+            comboAvgOdds.textContent = '0.00';
+            comboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 games to analyze round robins.</p>`;
+            return;
+        }
+
+        const wagerPerBet = parseFloat(wagerPerBetInput.value) || 1;
+        const totalOdds = betSlip.reduce((sum, bet) => sum + bet.odds, 0);
+        const calculatedAvgOdds = betSlip.length > 0 ? totalOdds / betSlip.length : 0;
+        
+        comboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
+
+        const overrideAmericanOdds = parseFloat(comboOverrideOddsInput.value);
+        const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
+        const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
+        
+        let bestProfitPerWin = -Infinity;
+        let bestComboIndex = -1;
+        let comboData = [];
+
+        for (let k = 2; k <= maxComboSize; k++) {
+            const numCombos = combinations(numGames, k);
+            const costForThisComboSize = numCombos * wagerPerBet;
+            const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
+            let winsNeeded = -1, profitAtBreakEven = 0, profitPerWin = 0;
+            for (let w = k; w <= numGames; w++) {
+                const winningCombos = combinations(w, k);
+                const totalWinnings = winningCombos * payoutPerWinningCombo;
+                if (totalWinnings > costForThisComboSize) {
+                    winsNeeded = w;
+                    profitAtBreakEven = totalWinnings - costForThisComboSize;
+                    if(winsNeeded > 0) profitPerWin = profitAtBreakEven / winsNeeded;
+                    break;
+                }
+            }
+            if(profitPerWin > bestProfitPerWin) {
+                bestProfitPerWin = profitPerWin;
+                bestComboIndex = k;
+            }
+            comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin});
+        }
+
+        let resultsHtml = `<table class="w-full text-sm text-left"><thead class="sticky top-0 z-10" style="background-color: var(--container-bg);"><tr class="border-b" style="border-color: var(--border-color);"><th class="p-2 w-8"><input type="checkbox" id="select-all-combos"></th><th class="p-2 font-semibold">Combo Size</th><th class="p-2 font-semibold text-center">Cost</th><th class="p-2 font-semibold text-center">Wins for Profit</th><th class="p-2 font-semibold text-center">Profit @ B/E</th><th class="p-2 font-semibold text-center text-yellow-500">Profit / Win</th></tr></thead><tbody>`;
+        comboData.forEach(data => {
+            const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, profitPerWin} = data;
+            const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
+            resultsHtml += `<tr class="border-b ${highlightClass}" style="border-color: var(--border-color);"><td class="p-2 text-center"><input type="checkbox" class="combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td><td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td><td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td><td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}</td><td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}</td><td class="p-2 text-center font-semibold ${profitPerWin <= 0 ? '' : 'text-yellow-500'}">${winsNeeded !== -1 ? `$${profitPerWin.toFixed(2)}` : 'N/A'}</td></tr>`;
+        });
+        resultsHtml += `</tbody><tfoot class="sticky bottom-0" style="background-color: var(--container-bg);"><tr class="border-t-2" style="border-color: var(--text-primary);"><td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td><td id="total-wager-cell" class="p-2 font-bold text-center">$0.00</td><td class="p-2 font-bold text-center" colspan="3"><span id="total-bets-cell">0</span> Bets</td></tr></tfoot></table>`;
+        comboResultsContainer.innerHTML = resultsHtml;
+        updateComboTotals();
+    }
+    
+    function calculateAndDisplayStrategyComboAnalysis(bets) {
+        const numGames = parseInt(strategyComboTotalGamesInput.value) || bets.length;
+        const maxComboSize = Math.min(15, numGames);
+        if (numGames < 2) {
+            strategyComboAvgOdds.textContent = '0.00';
+            strategyComboResultsContainer.innerHTML = `<p class="text-center text-secondary py-4">You need at least 2 bets to analyze round robins.</p>`;
+            return;
+        }
+        const wagerPerBet = parseFloat(strategyWagerPerBetInput.value) || 1;
+        const totalOdds = bets.reduce((sum, bet) => sum + bet.odds, 0);
+        const calculatedAvgOdds = bets.length > 0 ? totalOdds / bets.length : 0;
+        strategyComboAvgOdds.textContent = decimalToAmerican(calculatedAvgOdds);
+        const overrideAmericanOdds = parseFloat(strategyOverrideOddsInput.value);
+        const overrideDecimalOdds = americanToDecimal(overrideAmericanOdds);
+        const avgOdds = !isNaN(overrideDecimalOdds) ? overrideDecimalOdds : calculatedAvgOdds;
+        let bestRoi = -Infinity, bestComboIndex = -1, comboData = [];
+        for (let k = 2; k <= maxComboSize; k++) {
+            const numCombos = combinations(numGames, k);
+            const costForThisComboSize = numCombos * wagerPerBet;
+            const payoutPerWinningCombo = (avgOdds ** k) * wagerPerBet;
+            let winsNeeded = -1, profitAtBreakEven = 0, roiAtBreakEven = 0;
+            for (let w = k; w <= numGames; w++) {
+                const winningCombos = combinations(w, k);
+                const totalWinnings = winningCombos * payoutPerWinningCombo;
+                if (totalWinnings > costForThisComboSize) {
+                    winsNeeded = w;
+                    profitAtBreakEven = totalWinnings - costForThisComboSize;
+                    if (costForThisComboSize > 0) roiAtBreakEven = (profitAtBreakEven / costForThisComboSize) * 100;
+                    break;
+                }
+            }
+            if(roiAtBreakEven > bestRoi) { bestRoi = roiAtBreakEven; bestComboIndex = k; }
+            comboData.push({k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven});
+        }
+        let resultsHtml = `<table class="w-full text-sm text-left"><thead class="sticky top-0 z-10" style="background-color: var(--container-bg);"><tr class="border-b" style="border-color: var(--border-color);"><th class="p-2 w-8"><input type="checkbox" id="select-all-strategy-combos"></th><th class="p-2 font-semibold">Combo Size</th><th class="p-2 font-semibold text-center">Cost</th><th class="p-2 font-semibold text-center">Wins for Profit</th><th class="p-2 font-semibold text-center">Profit @ B/E</th><th class="p-2 font-semibold text-center text-yellow-500">ROI @ B/E</th></tr></thead><tbody>`;
+        comboData.forEach(data => {
+            const {k, numCombos, costForThisComboSize, winsNeeded, profitAtBreakEven, roiAtBreakEven} = data;
+            const highlightClass = k === bestComboIndex ? 'best-combo-highlight' : '';
+            resultsHtml += `<tr class="border-b ${highlightClass}" style="border-color: var(--border-color);"><td class="p-2 text-center"><input type="checkbox" class="strategy-combo-checkbox" data-num-bets="${numCombos}" data-cost="${costForThisComboSize.toFixed(2)}"></td><td class="p-2 font-bold">${k}-Teams (${numCombos} bets)</td><td class="p-2 text-center">$${costForThisComboSize.toFixed(2)}</td><td class="p-2 text-center font-bold ${winsNeeded === -1 ? 'text-red-500' : 'text-green-500'}">${winsNeeded !== -1 ? `${winsNeeded} of ${numGames}` : 'N/A'}</td><td class="p-2 text-center ${profitAtBreakEven <= 0 ? '' : 'text-green-500'}">${winsNeeded !== -1 ? `$${profitAtBreakEven.toFixed(2)}` : 'N/A'}</td><td class="p-2 text-center font-semibold ${roiAtBreakEven <= 0 ? '' : 'text-yellow-500'}">${winsNeeded !== -1 ? `+${roiAtBreakEven.toFixed(0)}%` : 'N/A'}</td></tr>`;
+        });
+        resultsHtml += `</tbody><tfoot class="sticky bottom-0" style="background-color: var(--container-bg);"> <tr class="border-t-2" style="border-color: var(--text-primary);"><td class="p-2 font-bold text-right" colspan="2">Selected Totals:</td><td id="total-strategy-wager-cell" class="p-2 font-bold text-center">$0.00</td><td class="p-2 font-bold text-center" colspan="3"><span id="total-strategy-bets-cell">0</span> Bets</td></tr></tfoot></table>`;
+        strategyComboResultsContainer.innerHTML = resultsHtml;
+        updateStrategyComboTotals();
+    }
+
+    function attachEventListeners() {
+        console.log("Attaching dynamic event listeners for game cards...");
+        gameListContainer.addEventListener('input', e => {
+            if (e.target.classList.contains('prob-slider')) {
+                const gameIndex = e.target.dataset.gameIndex;
+                const awayProbPercent = parseFloat(e.target.value) / 10;
+                const awayInput = document.getElementById(`game-${gameIndex}-away-prob-input`);
+                const homeInput = document.getElementById(`game-${gameIndex}-home-prob-input`);
+                if(document.activeElement !== awayInput) awayInput.value = awayProbPercent.toFixed(1);
+                if(document.activeElement !== homeInput) homeInput.value = (100 - awayProbPercent).toFixed(1);
+                const card = document.getElementById(`game-${gameIndex}`);
+                if (card) calculateAndDisplayResults(card, gameIndex, awayProbPercent / 100);
+                applyFiltersAndSorting();
+            }
+        });
+        gameListContainer.addEventListener('change', e => {
+            if (e.target.classList.contains('prob-input')) {
+                const gameIndex = e.target.closest('.game-card').dataset.gameIndex;
+                const awayInput = document.getElementById(`game-${gameIndex}-away-prob-input`);
+                const homeInput = document.getElementById(`game-${gameIndex}-home-prob-input`);
+                let value = parseFloat(e.target.value);
+                if (isNaN(value) || value < 0) value = 0;
+                if (value > 100) value = 100;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (e.target.id.includes('away')) {
+                    slider.value = value * 10;
+                    homeInput.value = (100 - value).toFixed(1);
+                } else {
+                    slider.value = (100 - value) * 10;
+                    awayInput.value = (100 - value).toFixed(1);
+                }
+                const card = document.getElementById(`game-${gameIndex}`);
+                if(card) calculateAndDisplayResults(card, gameIndex, parseFloat(slider.value) / 1000);
+                applyFiltersAndSorting();
+            }
+        });
+
+        gameListContainer.addEventListener('click', e => {
+            const resetBtn = e.target.closest('.reset-prob-btn');
+            if (resetBtn) {
+                const gameIndex = resetBtn.dataset.gameIndex;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (slider) {
+                    slider.value = slider.dataset.initialValue;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+            const fiftyBtn = e.target.closest('.fifty-fifty-btn');
+            if (fiftyBtn) {
+                const gameIndex = fiftyBtn.dataset.gameIndex;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (slider) {
+                    slider.value = 500;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+            const betOption = e.target.closest('.bet-option');
+            if (betOption) handleBetClick(betOption);
+        });
+    }
+
+    // --- SETUP LISTENERS ---
+    console.log("Attaching static event listeners...");
+    evFilterToggle.addEventListener('change', applyFiltersAndSorting);
+    sortSelect.addEventListener('change', applyFiltersAndSorting);
+    minOddsFilter.addEventListener('input', applyFiltersAndSorting);
+    soccerMarketSelect.addEventListener('change', () => displayGames(ALL_SPORTS_DATA));
+    
+    if (copyBtn) copyBtn.addEventListener('click', () => { console.log("Copy +EV button clicked."); handleCopyClick(); });
+    if (buildMomentumParlayBtn) buildMomentumParlayBtn.addEventListener('click', handleBuildMomentumParlay);
+    if (generateParlayBtn) generateParlayBtn.addEventListener('click', handleGenerateParlayClick);
+    if (analyzeTodayBtn) {
+        console.log("Analyze button found:", analyzeTodayBtn);
+        analyzeTodayBtn.addEventListener('click', fetchAndAnalyzeGames);
+    } else {
+        console.error("Analyze button not found!");
+    }
+    if (newAnalysisBtn) newAnalysisBtn.addEventListener('click', resetApp);
+    
+    helpBtn.addEventListener('click', () => {
+        helpModal.classList.remove('hidden');
+        setTimeout(() => { 
+            helpModal.classList.remove('opacity-0');
+            helpModalContent.classList.remove('scale-95');
+        }, 10);
+    });
+    closeHelpModalBtn.addEventListener('click', () => {
+        helpModal.classList.add('opacity-0');
+        helpModalContent.classList.add('scale-95');
+        setTimeout(() => helpModal.classList.add('hidden'), 300);
+    });
+    
+    clearSlipBtn.addEventListener('click', () => {
+        betSlip = [];
+        slipContext = { type: 'Custom Bet Slip', settings: '' };
+        gameCardElements.forEach(card => card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent'));
+        renderBetSlip();
+    });
+
+    betSlipList.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-bet-btn');
+        if (removeBtn) {
+            slipContext = { type: 'Custom Bet Slip', settings: '' };
+            const betIdToRemove = removeBtn.dataset.betId;
+            const betIndex = betSlip.findIndex(b => b.id === betIdToRemove);
+            if(betIndex > -1) {
+                const betToRemove = betSlip[betIndex];
+                const gameCard = document.getElementById(`game-${betToRemove.gameIndex}`);
+                if(gameCard){
+                     const betEl = gameCard.querySelector(`.bet-option[data-bet-label="${CSS.escape(betToRemove.label)}"]`);
+                     if(betEl) betEl.style.borderColor = 'transparent';
+                }
+                betSlip.splice(betIndex, 1);
+                renderBetSlip();
+            }
+        }
+    });
+
+     copySlipBtn.addEventListener('click', () => {
+        if (betSlip.length > 0) {
+            const minOddsValue = minOddsFilter.value || 'None';
+            const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
+            if (slipContext.type === 'Custom Bet Slip') {
+                slipContext.settings = `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`;
+            }
+            const colors = { containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0' };
+            let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
+            htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${betSlip.length} Picks)</h3>`;
+            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
+            
+            betSlip.forEach(bet => {
+                const game = ALL_SPORTS_DATA[bet.gameIndex];
+                const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
+                 const oddsText = decimalToAmerican(bet.odds);
+                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p><p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p></div>`;
+            });
+            htmlToCopy += `</div>`;
+            copyHtmlToClipboard(htmlToCopy, copySlipBtnText, 'Copy Slip');
+        }
+    });
+    
+    comboAnalysisBtn.addEventListener('click', () => {
+        if (betSlip.length >= 2) {
+            comboTotalGamesInput.value = betSlip.length;
+            comboModal.classList.remove('hidden');
+            setTimeout(() => {
+                comboModal.classList.remove('opacity-0');
+                comboModalContent.classList.remove('scale-95');
+                calculateAndDisplayComboAnalysis();
+            }, 10);
+        }
+    });
+    const hideComboModal = () => {
+         comboModal.classList.add('opacity-0');
+         comboModalContent.classList.add('scale-95');
+         setTimeout(() => comboModal.classList.add('hidden'), 300);
+    };
+    closeComboModalBtn.addEventListener('click', hideComboModal);
+    wagerPerBetInput.addEventListener('input', calculateAndDisplayComboAnalysis);
+    comboTotalGamesInput.addEventListener('input', calculateAndDisplayComboAnalysis);
+    comboOverrideOddsInput.addEventListener('input', calculateAndDisplayComboAnalysis);
+    
+    comboResultsContainer.addEventListener('change', (e) => {
+        if (e.target.matches('#select-all-combos')) {
+            comboResultsContainer.querySelectorAll('.combo-checkbox').forEach(box => box.checked = e.target.checked);
+        }
+        updateComboTotals();
+    });
+    
+    document.getElementById('select-all-sports').addEventListener('click', () => {
+        document.querySelectorAll('.sport-toggle-checkbox').forEach(box => box.checked = true);
+    });
+    document.getElementById('deselect-all-sports').addEventListener('click', () => {
+        document.querySelectorAll('.sport-toggle-checkbox').forEach(box => box.checked = false);
+    });
+
+    closeStrategyComboModalBtn.addEventListener('click', hideStrategyComboModal);
+    strategyWagerPerBetInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
+    strategyComboTotalGamesInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
+    strategyOverrideOddsInput.addEventListener('input', () => calculateAndDisplayStrategyComboAnalysis(currentStrategyBets));
+    copyStrategyParlayBtn.addEventListener('click', handleCopyStrategyParlay);
+
+    strategyComboResultsContainer.addEventListener('change', (e) => {
+        if (e.target.matches('#select-all-strategy-combos')) {
+            strategyComboResultsContainer.querySelectorAll('.strategy-combo-checkbox').forEach(box => box.checked = e.target.checked);
+        }
+        updateStrategyComboTotals();
+    });
+
+    attachEventListeners();
+
     console.log("script.js loaded and all initial event listeners attached successfully.");
 });
 
