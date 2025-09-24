@@ -1,137 +1,130 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2822
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
-
-\f0\fs24 \cf0 :root \{\
-    --bg-color: #f8fafc; /* Slate 50 */\
-    --container-bg: #ffffff; /* White */\
-    --text-primary: #0f172a; /* Slate 900 */\
-    --text-secondary: #475569; /* Slate 600 */\
-    --border-color: #e2e8f0; /* Slate 200 */\
-    --input-bg: #f1f5f9; /* Slate 100 */\
-    --header-bg-light: hsla(0, 0%, 100%, 0.7);\
-    --accent-color: #2563eb; /* Blue 600 */\
-    --accent-color-light: #eff6ff; /* Blue 50 */\
-    --accent-text-dark: #1e40af; /* Blue 800 */\
-    --positive-bg: #f0fdf4; /* Green 50 */\
-    --positive-text: #15803d; /* Green 700 */\
-    --positive-border: #bbf7d0; /* Green 300 */\
-    --negative-bg: #fef2f2; /* Red 50 */\
-    --negative-text: #b91c1c; /* Red 700 */\
-    --negative-border: #fecaca; /* Red 300 */\
-    --highlight-bg: #fefce8; /* Yellow 50 */\
-\}\
-html.dark \{\
-    --bg-color: #020617; /* Slate 950 */\
-    --container-bg: #0f172a; /* Slate 900 */\
-    --text-primary: #f1f5f9; /* Slate 100 */\
-    --text-secondary: #64748b; /* Slate 500 */\
-    --border-color: #1e293b; /* Slate 800 */\
-    --input-bg: #1e293b;\
-    --header-bg-light: hsla(222, 47%, 11%, 0.7);\
-    --accent-color: #3b82f6; /* Blue 500 */\
-    --accent-color-light: #1e293b; /* A darker blue-ish slate */\
-    --accent-text-dark: #93c5fd; /* Blue 300 */\
-    --positive-bg: #111827; /* Gray 900 */\
-    --positive-text: #4ade80; /* Green 400 */\
-    --positive-border: #166534; /* Green 800 */\
-    --negative-bg: #111827; /* Gray 900 */\
-    --negative-text: #f87171; /* Red 400 */\
-    --negative-border: #991b1b; /* Red 800 */\
-    --highlight-bg: #332c12; /* Dark Yellow */\
-\}\
-body \{\
-    font-family: 'Inter', sans-serif;\
-    background-color: var(--bg-color);\
-    color: var(--text-primary);\
-    transition: background-color 0.3s, color 0.3s;\
-\}\
-header \{\
-    position: sticky;\
-    top: 1rem;\
-    z-index: 10;\
-    background-color: var(--header-bg-light);\
-    backdrop-filter: blur(12px);\
-    -webkit-backdrop-filter: blur(12px);\
-    padding: 1.5rem;\
-    border-radius: 1.25rem;\
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);\
-    border: 1px solid var(--border-color);\
-    position: relative; /* Added for canvas positioning */\
-    overflow: hidden; /* Ensures canvas corners are clipped */\
-\}\
-html.dark header \{\
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);\
-\}\
-#theme-toggle \{ position: absolute; top: 1rem; right: 1rem; \}\
-#help-btn \{ position: absolute; top: 1rem; left: 1rem; \}\
-\
-.game-card \{\
-    background-color: var(--container-bg);\
-    border-radius: 1.25rem;\
-    padding: 1.5rem;\
-    box-shadow: 0 6px 15px rgba(0,0,0,0.05);\
-    border: 1px solid var(--border-color);\
-    transition: transform 0.2s, box-shadow 0.2s;\
-    position: relative;\
-    overflow: hidden;\
-\}\
-.game-card:hover \{\
-    transform: translateY(-4px);\
-    box-shadow: 0 10px 20px rgba(0,0,0,0.08);\
-\}\
-html.dark .game-card \{ box-shadow: 0 6px 15px rgba(0,0,0,0.2); \}\
-html.dark .game-card:hover \{ box-shadow: 0 10px 20px rgba(0,0,0,0.3); \}\
-\
-.result-display \{\
-    display: flex;\
-    justify-content: space-between;\
-    align-items: center;\
-    padding: 0.5rem 0.75rem;\
-    border-radius: 0.5rem;\
-    margin-top: 0.5rem;\
-    font-weight: 500;\
-    border: 1px solid;\
-    background-color: var(--positive-bg);\
-\}\
-.positive-ev \{ color: var(--positive-text); border-color: var(--positive-border); \}\
-.negative-ev \{ color: var(--negative-text); border-color: var(--negative-border); \}\
-\
-.spinner \{ animation: rotate 1s linear infinite; \}\
-@keyframes rotate \{ from \{ transform: rotate(0deg); \} to \{ transform: rotate(360deg); \} \}\
-\
-/* Custom Slider & Input Styles */\
-input[type=range] \{ -webkit-appearance: none; background: transparent; cursor: pointer; width: 100%; \}\
-input[type=range]:focus \{ outline: none; \}\
-input[type=range]::-webkit-slider-runnable-track \{ background: var(--input-bg); height: 0.75rem; border-radius: 1rem; border: 1px solid var(--border-color); \}\
-input[type=range]::-webkit-slider-thumb \{ -webkit-appearance: none; margin-top: -0.6rem; background-color: var(--accent-color); height: 1.75rem; width: 1.75rem; border-radius: 50%; border: 5px solid var(--container-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); \}\
-input[type=range]::-moz-range-track \{ background: var(--input-bg); height: 0.75rem; border-radius: 1rem; border: 1px solid var(--border-color); \}\
-input[type=range]::-moz-range-thumb \{ background-color: var(--accent-color); height: 1.75rem; width: 1.75rem; border-radius: 50%; border: 5px solid var(--container-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); \}\
-.prob-input \{ background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 0.375rem; text-align: center; width: 70px; font-weight: 600; padding: 0.25rem; \}\
-.prob-input:focus \{ outline: 2px solid var(--accent-color); \}\
-\
-.utility-btn \{ background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 500; transition: all 0.2s; \}\
-.utility-btn:hover:not(:disabled) \{ background-color: var(--accent-color-light); border-color: var(--accent-color); color: var(--accent-text-dark); \}\
-.utility-btn:disabled \{ opacity: 0.5; cursor: not-allowed; \}\
-\
-/* Modal Styles */\
-#help-modal, #combo-modal, #strategy-combo-modal \{ transition: opacity 0.3s; \}\
-#help-modal-content, #combo-modal-content, #strategy-combo-modal-content \{ transition: transform 0.3s; \}\
-\
-/* Summary Dashboard */\
-.stat-card \{\
-    background-color: var(--container-bg);\
-    padding: 1rem;\
-    border-radius: 1rem;\
-    border: 1px solid var(--border-color);\
-    box-shadow: 0 4px 6px rgba(0,0,0,0.04);\
-\}\
-\
-/* Combo Modal Highlight */\
-.best-combo-highlight \{\
-    background-color: var(--highlight-bg);\
-\}\
+:root {
+    --bg-color: #f8fafc; /* Slate 50 */
+    --container-bg: #ffffff; /* White */
+    --text-primary: #0f172a; /* Slate 900 */
+    --text-secondary: #475569; /* Slate 600 */
+    --border-color: #e2e8f0; /* Slate 200 */
+    --input-bg: #f1f5f9; /* Slate 100 */
+    --header-bg-light: hsla(0, 0%, 100%, 0.7);
+    --accent-color: #2563eb; /* Blue 600 */
+    --accent-color-light: #eff6ff; /* Blue 50 */
+    --accent-text-dark: #1e40af; /* Blue 800 */
+    --positive-bg: #f0fdf4; /* Green 50 */
+    --positive-text: #15803d; /* Green 700 */
+    --positive-border: #bbf7d0; /* Green 300 */
+    --negative-bg: #fef2f2; /* Red 50 */
+    --negative-text: #b91c1c; /* Red 700 */
+    --negative-border: #fecaca; /* Red 300 */
+    --highlight-bg: #fefce8; /* Yellow 50 */
 }
+html.dark {
+    --bg-color: #020617; /* Slate 950 */
+    --container-bg: #0f172a; /* Slate 900 */
+    --text-primary: #f1f5f9; /* Slate 100 */
+    --text-secondary: #64748b; /* Slate 500 */
+    --border-color: #1e293b; /* Slate 800 */
+    --input-bg: #1e293b;
+    --header-bg-light: hsla(222, 47%, 11%, 0.7);
+    --accent-color: #3b82f6; /* Blue 500 */
+    --accent-color-light: #1e293b; /* A darker blue-ish slate */
+    --accent-text-dark: #93c5fd; /* Blue 300 */
+    --positive-bg: #111827; /* Gray 900 */
+    --positive-text: #4ade80; /* Green 400 */
+    --positive-border: #166534; /* Green 800 */
+    --negative-bg: #111827; /* Gray 900 */
+    --negative-text: #f87171; /* Red 400 */
+    --negative-border: #991b1b; /* Red 800 */
+    --highlight-bg: #332c12; /* Dark Yellow */
+}
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+header {
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+    background-color: var(--header-bg-light);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border: 1px solid var(--border-color);
+    position: relative; /* Added for canvas positioning */
+    overflow: hidden; /* Ensures canvas corners are clipped */
+}
+html.dark header {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+#theme-toggle { position: absolute; top: 1rem; right: 1rem; }
+#help-btn { position: absolute; top: 1rem; left: 1rem; }
+
+.game-card {
+    background-color: var(--container-bg);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+html.dark .game-card { box-shadow: 0 6px 15px rgba(0,0,0,0.2); }
+html.dark .game-card:hover { box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+.result-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+    border: 1px solid;
+    background-color: var(--positive-bg);
+}
+.positive-ev { color: var(--positive-text); border-color: var(--positive-border); }
+.negative-ev { color: var(--negative-text); border-color: var(--negative-border); }
+
+.spinner { animation: rotate 1s linear infinite; }
+@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Custom Slider & Input Styles */
+input[type=range] { -webkit-appearance: none; background: transparent; cursor: pointer; width: 100%; }
+input[type=range]:focus { outline: none; }
+input[type=range]::-webkit-slider-runnable-track { background: var(--input-bg); height: 0.75rem; border-radius: 1rem; border: 1px solid var(--border-color); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -0.6rem; background-color: var(--accent-color); height: 1.75rem; width: 1.75rem; border-radius: 50%; border: 5px solid var(--container-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+input[type=range]::-moz-range-track { background: var(--input-bg); height: 0.75rem; border-radius: 1rem; border: 1px solid var(--border-color); }
+input[type=range]::-moz-range-thumb { background-color: var(--accent-color); height: 1.75rem; width: 1.75rem; border-radius: 50%; border: 5px solid var(--container-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+.prob-input { background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 0.375rem; text-align: center; width: 70px; font-weight: 600; padding: 0.25rem; }
+.prob-input:focus { outline: 2px solid var(--accent-color); }
+
+.utility-btn { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 500; transition: all 0.2s; }
+.utility-btn:hover:not(:disabled) { background-color: var(--accent-color-light); border-color: var(--accent-color); color: var(--accent-text-dark); }
+.utility-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Modal Styles */
+#help-modal, #combo-modal, #strategy-combo-modal { transition: opacity 0.3s; }
+#help-modal-content, #combo-modal-content, #strategy-combo-modal-content { transition: transform 0.3s; }
+
+/* Summary Dashboard */
+.stat-card {
+    background-color: var(--container-bg);
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+}
+
+/* Combo Modal Highlight */
+.best-combo-highlight {
+    background-color: var(--highlight-bg);
+}
+
