@@ -603,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const momentumTeam = probabilityShift > 0 ? 'away' : 'home';
             if (homeOnly && momentumTeam !== 'home') return;
 
-            let pick = { gameIndex: index, momentum: Math.abs(probabilityShift) };
+            let pick = { gameIndex: index, momentum: Math.abs(probabilityShift), momentumShift: probabilityShift };
             const highSpreadSports = ['Football', 'Basketball'];
             if (highSpreadSports.includes(sport) && game.spread_away_odds && game.spread_home_odds) {
                 pick.label = `${getTeamInfo(game[`${momentumTeam}_team`]).name} ${game[`spread_${momentumTeam}`] > 0 ? '+' : ''}${game[`spread_${momentumTeam}`]}`;
@@ -619,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         potentialBets.sort((a, b) => b.momentum - a.momentum);
         const topBets = potentialBets.slice(0, 20);
         topBets.forEach(bet => {
-            betSlip.push({ id: bet.id, gameIndex: bet.gameIndex, label: bet.label, odds: bet.odds });
+            betSlip.push({ id: bet.id, gameIndex: bet.gameIndex, label: bet.label, odds: bet.odds, momentumShift: bet.momentumShift });
             const card = document.getElementById(`game-${bet.gameIndex}`);
             if (card) {
                 const betEl = card.querySelector(`.bet-option[data-bet-label="${CSS.escape(bet.label)}"]`);
@@ -1010,19 +1010,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (betSlip.length > 0) {
             const minOddsValue = minOddsFilter.value || 'None';
             const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
+            const timestamp = new Date().toLocaleString();
             if (slipContext.type === 'Custom Bet Slip') {
                 slipContext.settings = `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`;
             }
             const colors = { containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0' };
             let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
             htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${betSlip.length} Picks)</h3>`;
-            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
+            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Generated: ${timestamp} | Settings: ${slipContext.settings}</p>`;
             
             betSlip.forEach(bet => {
                 const game = ALL_SPORTS_DATA[bet.gameIndex];
                 const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
                  const oddsText = decimalToAmerican(bet.odds);
-                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p><p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p></div>`;
+                 let momentumText = '';
+                if (bet.momentumShift !== undefined) {
+                    const momentumShift = bet.momentumShift * 100;
+                    momentumText = ` | Mom: ${momentumShift > 0 ? '+' : ''}${momentumShift.toFixed(1)}%`;
+                }
+                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText}${momentumText})</span></p><p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p></div>`;
             });
             htmlToCopy += `</div>`;
             copyHtmlToClipboard(htmlToCopy, copySlipBtnText, 'Copy Slip');
