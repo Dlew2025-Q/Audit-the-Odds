@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- API & DATA ---
 
     // IMPORTANT: Replace with your actual paid API key
-    const oddsApiKey = 'YOUR_PAID_API_KEY_HERE'; 
+    const oddsApiKey = 'cc51a757d14174fd8061956b288df39e'; 
 
     /**
      * Calculates momentum based on the change in implied probability over 24 hours.
