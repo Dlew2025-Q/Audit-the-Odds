@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- DOM ELEMENTS ---
+    // --- DOM ELEMENTS (omitted for brevity, assume they are defined as before) ---
     const gameListContainer = document.getElementById('game-list-container');
     const processingState = document.getElementById('processingState');
     const processingText = document.getElementById('processing-text');
@@ -257,10 +257,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const now = new Date();
-            const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999);
-            const commenceTimeFrom = now.toISOString().slice(0, 19) + 'Z';
-            const commenceTimeTo = endOfDay.toISOString().slice(0, 19) + 'Z';
+            let startDate = new Date();
+            let endDate = new Date();
+
+            if (now.getHours() >= 21) { // 9 PM or later
+                startDate.setDate(now.getDate() + 1);
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setDate(now.getDate() + 1);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                endDate.setHours(23, 59, 59, 999);
+            }
+
+            const commenceTimeFrom = startDate.toISOString().slice(0, 19) + 'Z';
+            const commenceTimeTo = endDate.toISOString().slice(0, 19) + 'Z';
             const yesterdayTimestamp = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 19) + 'Z';
 
             processingText.textContent = 'Fetching current and historical odds...';
@@ -289,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (allGames.length === 0) {
-                showError("No upcoming games found for active sports in the next 24 hours.");
+                showError("No upcoming games found for the selected time frame.");
                 return;
             }
 
