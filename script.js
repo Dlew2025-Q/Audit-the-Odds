@@ -834,10 +834,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function attachEventListeners() {
-        console.log("Attaching event listeners...");
+        console.log("Attaching dynamic event listeners for game cards...");
         gameListContainer.addEventListener('input', e => {
             if (e.target.classList.contains('prob-slider')) {
-                updateCardFromSlider(e.target.dataset.gameIndex, parseFloat(e.target.value));
+                const gameIndex = e.target.dataset.gameIndex;
+                const awayProbPercent = parseFloat(e.target.value) / 10;
+                const awayInput = document.getElementById(`game-${gameIndex}-away-prob-input`);
+                const homeInput = document.getElementById(`game-${gameIndex}-home-prob-input`);
+                if(document.activeElement !== awayInput) awayInput.value = awayProbPercent.toFixed(1);
+                if(document.activeElement !== homeInput) homeInput.value = (100 - awayProbPercent).toFixed(1);
+                const card = document.getElementById(`game-${gameIndex}`);
+                if (card) calculateAndDisplayResults(card, gameIndex, awayProbPercent / 100);
+                applyFiltersAndSorting();
             }
         });
         gameListContainer.addEventListener('change', e => {
@@ -845,21 +853,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 const gameIndex = e.target.closest('.game-card').dataset.gameIndex;
                 const awayInput = document.getElementById(`game-${gameIndex}-away-prob-input`);
                 const homeInput = document.getElementById(`game-${gameIndex}-home-prob-input`);
-                if (e.target.id === awayInput.id) {
-                    updateCardFromInput(gameIndex, awayInput, homeInput);
+                let value = parseFloat(e.target.value);
+                if (isNaN(value) || value < 0) value = 0;
+                if (value > 100) value = 100;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (e.target.id.includes('away')) {
+                    slider.value = value * 10;
+                    homeInput.value = (100 - value).toFixed(1);
                 } else {
-                    updateCardFromInput(gameIndex, homeInput, awayInput);
+                    slider.value = (100 - value) * 10;
+                    awayInput.value = (100 - value).toFixed(1);
                 }
+                const card = document.getElementById(`game-${gameIndex}`);
+                if(card) calculateAndDisplayResults(card, gameIndex, parseFloat(slider.value) / 1000);
+                applyFiltersAndSorting();
             }
         });
 
         gameListContainer.addEventListener('click', e => {
-            if (e.target.closest('.reset-prob-btn')) { handleResetProbability(e.target.closest('.reset-prob-btn')); }
-            if (e.target.closest('.fifty-fifty-btn')) { handle50PercentClick(e.target.closest('.fifty-fifty-btn')); }
-            const betOption = e.target.closest('.bet-option');
-            if (betOption) {
-                handleBetClick(betOption);
+            const resetBtn = e.target.closest('.reset-prob-btn');
+            if (resetBtn) {
+                const gameIndex = resetBtn.dataset.gameIndex;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (slider) {
+                    slider.value = slider.dataset.initialValue;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
             }
+            const fiftyBtn = e.target.closest('.fifty-fifty-btn');
+            if (fiftyBtn) {
+                const gameIndex = fiftyBtn.dataset.gameIndex;
+                const slider = document.querySelector(`.prob-slider[data-game-index="${gameIndex}"]`);
+                if (slider) {
+                    slider.value = 500;
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+            const betOption = e.target.closest('.bet-option');
+            if (betOption) handleBetClick(betOption);
         });
     }
 
@@ -868,12 +899,13 @@ document.addEventListener('DOMContentLoaded', () => {
     sortSelect.addEventListener('change', applyFiltersAndSorting);
     minOddsFilter.addEventListener('input', applyFiltersAndSorting);
     soccerMarketSelect.addEventListener('change', () => displayGames(ALL_SPORTS_DATA));
-    console.log("Analyze button found:", analyzeTodayBtn);
-    copyBtn.addEventListener('click', handleCopyClick);
-    buildMomentumParlayBtn.addEventListener('click', handleBuildMomentumParlay);
-    generateParlayBtn.addEventListener('click', handleGenerateParlayClick);
-    analyzeTodayBtn.addEventListener('click', fetchAndAnalyzeGames);
-    newAnalysisBtn.addEventListener('click', resetApp);
+    
+    if (copyBtn) copyBtn.addEventListener('click', () => { console.log("Copy +EV button clicked."); handleCopyClick(); });
+    if (buildMomentumParlayBtn) buildMomentumParlayBtn.addEventListener('click', handleBuildMomentumParlay);
+    if (generateParlayBtn) generateParlayBtn.addEventListener('click', handleGenerateParlayClick);
+    if (analyzeTodayBtn) analyzeTodayBtn.addEventListener('click', fetchAndAnalyzeGames);
+    if (newAnalysisBtn) newAnalysisBtn.addEventListener('click', resetApp);
+    
     helpBtn.addEventListener('click', () => {
         helpModal.classList.remove('hidden');
         setTimeout(() => { 
