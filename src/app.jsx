@@ -174,21 +174,7 @@ function GameCard({ game, addBet }) {
         setEvHome(calculateEV(homeProb / 100, game.moneyline_home));
     };
 
-    const handleBetClick = (teamName, odds, betType, betLabel) => {
-        const ev = betType === 'Moneyline'
-            ? (teamName === game.away_team ? evAway : evHome)
-            : (betType === 'Spread' ? (teamName === game.away_team ? calculateEV(impliedProbSpread.away, odds) : calculateEV(impliedProbSpread.home, odds)) : (betLabel.includes('Over') ? calculateEV(impliedProbTotal.over, odds) : calculateEV(impliedProbTotal.under, odds)));
-
-        const bet = {
-            id: `${game.id}-${betLabel}`,
-            gameId: game.id,
-            team: teamName,
-            odds: odds,
-            ev: ev,
-            betType: betType,
-            betLabel: betLabel,
-            sport: getGameSport(game),
-        };
+    const handleBetClick = (bet) => {
         addBet(bet);
     };
 
@@ -217,11 +203,11 @@ function GameCard({ game, addBet }) {
                      <div className="flex items-center justify-between w-full space-x-2">
                         <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
                              <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                             <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away, 'Moneyline', `Moneyline: ${awayTeamInfo.name}`)} className="utility-btn text-sm mt-1">Add</button>
+                             <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-away`, gameId: game.id, team: awayTeamInfo.name, odds: game.moneyline_away, ev: evAway, betType: 'Moneyline', betLabel: `Moneyline: ${awayTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
                         </div>
                         <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
                             <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                            <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home, 'Moneyline', `Moneyline: ${homeTeamInfo.name}`)} className="utility-btn text-sm mt-1">Add</button>
+                            <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-home`, gameId: game.id, team: homeTeamInfo.name, odds: game.moneyline_home, ev: evHome, betType: 'Moneyline', betLabel: `Moneyline: ${homeTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
                         </div>
                     </div>
                 </div>
@@ -246,49 +232,55 @@ function GameCard({ game, addBet }) {
                      <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
                 </div>
             </div>
-            <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
-                 {/* Spreads Section */}
-                <div className="flex flex-col items-center">
-                    <h4 className="font-bold text-sm mb-2">Spreads</h4>
-                    <div className="flex justify-between items-center w-full space-x-2">
-                        {spreadAwayOutcome && (
-                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
-                                <button onClick={() => handleBetClick(awayTeamInfo.name, spreadAwayOutcome.price, 'Spread', `Spread (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+            {(spreadMarket || totalMarket) && (
+                <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
+                     {/* Spreads Section */}
+                    {spreadMarket && (
+                        <div className="flex flex-col items-center">
+                            <h4 className="font-bold text-sm mb-2">Spreads</h4>
+                            <div className="flex justify-between items-center w-full space-x-2">
+                                {spreadAwayOutcome && (
+                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
+                                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-away`, gameId: game.id, team: awayTeamInfo.name, odds: spreadAwayOutcome.price, ev: calculateEV(impliedProbSpread.away, spreadAwayOutcome.price), betType: 'Spread', betLabel: `Spread: ${awayTeamInfo.name} (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                                    </div>
+                                )}
+                                {spreadHomeOutcome && (
+                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
+                                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-home`, gameId: game.id, team: homeTeamInfo.name, odds: spreadHomeOutcome.price, ev: calculateEV(impliedProbSpread.home, spreadHomeOutcome.price), betType: 'Spread', betLabel: `Spread: ${homeTeamInfo.name} (${spreadHomeOutcome.point > 0 ? '+' : ''}${spreadHomeOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {spreadHomeOutcome && (
-                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
-                                <button onClick={() => handleBetClick(homeTeamInfo.name, spreadHomeOutcome.price, 'Spread', `Spread (${spreadHomeOutcome.point > 0 ? '+' : ''}${spreadHomeOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                        </div>
+                    )}
 
-                {/* Totals Section */}
-                <div className="flex flex-col items-center">
-                    <h4 className="font-bold text-sm mb-2">Totals</h4>
-                    <div className="flex justify-between items-center w-full space-x-2">
-                        {totalOverOutcome && (
-                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
-                                <button onClick={() => handleBetClick(`${awayTeamInfo.name}/${homeTeamInfo.name}`, totalOverOutcome.price, 'Total', `Over (${totalOverOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+                    {/* Totals Section */}
+                    {totalMarket && (
+                        <div className="flex flex-col items-center">
+                            <h4 className="font-bold text-sm mb-2">Totals</h4>
+                            <div className="flex justify-between items-center w-full space-x-2">
+                                {totalOverOutcome && (
+                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
+                                        <button onClick={() => handleBetClick({ id: `${game.id}-total-over`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalOverOutcome.price, ev: calculateEV(impliedProbTotal.over, totalOverOutcome.price), betType: 'Total', betLabel: `Total: Over (${totalOverOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                                    </div>
+                                )}
+                                {totalUnderOutcome && (
+                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
+                                        <button onClick={() => handleBetClick({ id: `${game.id}-total-under`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalUnderOutcome.price, ev: calculateEV(impliedProbTotal.under, totalUnderOutcome.price), betType: 'Total', betLabel: `Total: Under (${totalUnderOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {totalUnderOutcome && (
-                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
-                                <button onClick={() => handleBetClick(`${awayTeamInfo.name}/${homeTeamInfo.name}`, totalUnderOutcome.price, 'Total', `Under (${totalUnderOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
-            </div>
+            )}
         </div>
     );
 }
