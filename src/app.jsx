@@ -217,11 +217,11 @@ function GameCard({ game, addBet }) {
                      <div className="flex items-center justify-between w-full space-x-2">
                         <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
                              <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                             <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away, 'Moneyline', 'Moneyline')} className="utility-btn text-sm mt-1">Add</button>
+                             <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away, 'Moneyline', `Moneyline: ${awayTeamInfo.name}`)} className="utility-btn text-sm mt-1">Add</button>
                         </div>
                         <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
                             <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                            <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home, 'Moneyline', 'Moneyline')} className="utility-btn text-sm mt-1">Add</button>
+                            <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home, 'Moneyline', `Moneyline: ${homeTeamInfo.name}`)} className="utility-btn text-sm mt-1">Add</button>
                         </div>
                     </div>
                 </div>
@@ -653,21 +653,21 @@ Filter Settings:
                 }
 
                 // Check spread bets
-                if (game.spread_away_odds) {
+                if (game.spread_away_odds && game.spread_home_odds) {
                     const awaySpreadEV = calculateEV(impliedSpreadProb, game.spread_away_odds);
                     if (awaySpreadEV > maxEV) {
                         maxEV = awaySpreadEV;
-                        bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away})` };
+                        bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` };
                     }
                     const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds); 
                     if (homeSpreadEV > maxEV) {
                         maxEV = homeSpreadEV;
-                        bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home})` };
+                        bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` };
                     }
                 }
                 
                 // Check total bets
-                if (game.total_over_odds) {
+                if (game.total_over_odds && game.total_under_odds) {
                      const overEV = calculateEV(impliedTotalProb, game.total_over_odds);
                      if (overEV > maxEV) {
                          maxEV = overEV;
