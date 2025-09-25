@@ -215,6 +215,10 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, h
                         <option value="momentum">Momentum</option>
                     </select>
                 </label>
+                <label className="flex flex-col space-y-1 col-span-2">
+                    <span className="text-sm">Bankroll</span>
+                    <input type="number" name="bankroll" value={filters.bankroll} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                </label>
             </div>
             <div className="flex justify-between items-center mt-4">
                 <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
@@ -240,6 +244,7 @@ function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
                                      <p className="text-sm font-semibold">{bet.team}</p>
                                      <p className="text-xs text-slate-500 dark:text-slate-400">
                                          Odds: {decimalToAmerican(bet.odds)} | EV: {bet.ev.toFixed(2)}%
+                                         {bet.betSize && <span className="ml-2"> | Bet: ${bet.betSize.toFixed(2)}</span>}
                                      </p>
                                  </div>
                                  <button onClick={() => removeBet(bet.id)} className="text-red-500 hover:text-red-700">
@@ -455,10 +460,11 @@ export default function App() {
     const copyBetSlip = useCallback(() => {
         const betSlipText = betSlip.map(bet => {
             const evDisplay = bet.ev >= 0 ? `+${bet.ev.toFixed(2)}%` : `${bet.ev.toFixed(2)}%`;
-            return `Bet: ${bet.team} | Odds: ${decimalToAmerican(bet.odds)} | EV: ${evDisplay}`;
+            const betSizeText = bet.betSize ? ` | Bet Size: $${bet.betSize.toFixed(2)}` : '';
+            return `• ${bet.team} (${bet.sport}) | Odds: ${decimalToAmerican(bet.odds)} | EV: ${evDisplay}${betSizeText}`;
         }).join('\n');
 
-        const header = `Audit the Odds Bet Slip\nGenerated on: ${new Date().toLocaleString()}\n---\n`;
+        const header = `Audit the Odds Bet Slip\nGenerated on: ${new Date().toLocaleString()}\nBankroll: $${filters.bankroll.toFixed(2)}\n---\n`;
         const footer = `\n---\nFind value at audittheodds.com`;
         
         const textToCopy = header + betSlipText + footer;
@@ -470,7 +476,7 @@ export default function App() {
         document.execCommand('copy');
         document.body.removeChild(tempTextarea);
 
-    }, [betSlip]);
+    }, [betSlip, filters.bankroll]);
 
     const handleBuildKellyBets = useCallback(() => {
         const kellyBets = allGames
@@ -487,7 +493,7 @@ export default function App() {
                 }
 
                 if (bestEVBet) {
-                    const kellyBetSize = calculateKellyBet(filters.bankroll, { bestEVBet });
+                    const kellyBetSize = kellyCriterion(bestEVBet.winProb, bestEVBet.odds) * filters.bankroll;
                     if (kellyBetSize > 0) {
                         return {
                             ...bestEVBet,
@@ -540,8 +546,9 @@ export default function App() {
         }
         if (filters.fadeMomentum) {
              filtered = filtered.filter(game => {
-                const awayEV = calculateEV(1 - getMomentumAdjustedProbability(game, game.historicalData).prob, game.moneyline_home);
-                const homeEV = calculateEV(getMomentumAdjustedProbability(game, game.historicalData).prob, game.moneyline_away);
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const awayEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+                const homeEV = calculateEV(momentumResult.prob, game.moneyline_away);
                 return awayEV > 0 || homeEV > 0;
             });
         }
