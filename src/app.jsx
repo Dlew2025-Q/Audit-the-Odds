@@ -327,7 +327,7 @@ export default function App() {
     const [filters, setFilters] = useState({
         showPositiveEVOnly: false,
         sortBy: 'commence_time',
-        minOdds: '', // Changed to empty string to accept American odds format
+        minOdds: '', 
         minMomentum: 0,
         bankroll: 100,
         homeTeamsOnly: false,
