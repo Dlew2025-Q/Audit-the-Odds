@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-// --- Helper Functions (Pure Logic) ---
+// --- Helper Functions (Pure Logic - Defined Globally in the Module) ---
+
 const getNoVigProb = (odds1, odds2) => {
     if (!odds1 || !odds2) return 0.5;
     const implied1 = 1 / odds1;
@@ -9,19 +10,38 @@ const getNoVigProb = (odds1, odds2) => {
     if (totalImplied === 0) return 0.5;
     return implied1 / totalImplied;
 };
+
 const decimalToAmerican = (decimalOdds) => {
     if (isNaN(decimalOdds) || decimalOdds <= 1) return 'N/A';
     if (decimalOdds >= 2.0) return `+${((decimalOdds - 1) * 100).toFixed(0)}`;
     return `${(-100 / (decimalOdds - 1)).toFixed(0)}`;
 };
+
 const americanToDecimal = (americanOdds) => {
-    if (isNaN(americanOdds) || isNaN(parseFloat(americanOdds))) return NaN;
-    americanOdds = parseFloat(americanOdds);
-    if (americanOdds >= 100) return (americanOdds / 100) + 1;
-    if (americanOdds <= -100) return (100 / Math.abs(americanOdds)) + 1;
+    const num = parseFloat(americanOdds);
+    if (isNaN(num)) return NaN;
+    if (num >= 100) return (num / 100) + 1;
+    if (num <= -100) return (100 / Math.abs(num)) + 1;
     return NaN;
 };
+
 const calculateEV = (winProb, decimalOdds) => (winProb * (decimalOdds - 1)) - (1 - winProb);
+
+const getMomentumAdjustedProbability = (currentGame, historicalGame) => {
+    const currentAwayProb = getNoVigProb(currentGame.moneyline_away, currentGame.moneyline_home);
+    if (!historicalGame) return { prob: currentAwayProb, status: 'no_data' };
+    const historicalBookmaker = historicalGame.bookmakers?.[0];
+    if (!historicalBookmaker) return { prob: currentAwayProb, status: 'no_data' };
+    const historicalMoneyline = historicalBookmaker.markets.find(m => m.key === 'h2h');
+    const historicalAwayOutcome = historicalMoneyline?.outcomes.find(o => o.name === currentGame.away_team);
+    const historicalHomeOutcome = historicalMoneyline?.outcomes.find(o => o.name === currentGame.home_team);
+    if (!historicalAwayOutcome || !historicalHomeOutcome) return { prob: currentAwayProb, status: 'no_data' };
+    const openingAwayProb = getNoVigProb(historicalAwayOutcome.price, historicalHomeOutcome.price);
+    const probabilityShift = currentAwayProb - openingAwayProb;
+    let adjustedProb = currentAwayProb + probabilityShift;
+    adjustedProb = Math.max(0.01, Math.min(0.99, adjustedProb));
+    return { prob: adjustedProb, status: 'ok', shift: probabilityShift };
+};
 
 const LOGO_BASE_URL = 'https://a.espncdn.com/i/teamlogos';
 const TEAM_INFO = {
@@ -47,7 +67,6 @@ const getGameSport = (game) => {
 // --- Child Components ---
 
 function Header() {
-    // This could later manage its own state for theme toggling etc.
     return (
         <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
             <div className="text-center">
@@ -63,7 +82,7 @@ function Header() {
     );
 }
 
-function GameCard({ game }) {
+function GameCard({ game, index, handleBetClick, betSlip }) {
     const [awayProb, setAwayProb] = useState(50);
     
     useEffect(() => {
@@ -74,7 +93,7 @@ function GameCard({ game }) {
     const awayTeamInfo = getTeamInfo(game.away_team);
     const homeTeamInfo = getTeamInfo(game.home_team);
 
-    // Placeholder for all the complex logic that will be migrated
+    // Placeholder until full UI migration
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
             <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
