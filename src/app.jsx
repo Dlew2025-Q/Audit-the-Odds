@@ -562,6 +562,8 @@ Filter Settings:
 `;
         const footer = `\n--\nFind your edge at audittheodds.com`;
         
+        const textToCopy = header + betSlipText + footer;
+        
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
         document.body.appendChild(tempTextarea);
