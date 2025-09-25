@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Header } from './Header';
-import { GameCard } from './GameCard';
-import { BetSlip } from './BetSlip';
-import { FilterControls } from './FilterControls';
-import { HelpModal } from './HelpModal';
 
-// --- Helper Functions (Pure Logic - Defined Globally in the Module) ---
-// These functions are duplicated here from utils.js, but kept for minimal change/context.
+// --- Helper Functions (Pure Logic) ---
+// All helper functions from utils.js are included here to meet the single-file mandate.
+
 const getNoVigProb = (odds1, odds2) => {
     if (!odds1 || !odds2) return 0.5;
     const implied1 = 1 / odds1;
@@ -69,6 +65,228 @@ const getGameSport = (game) => {
     return 'Unknown';
 };
 
+const kellyCriterion = (winProb, odds) => (winProb * (odds - 1) - (1 - winProb)) / (odds - 1);
+const calculateKellyBet = (bankroll, game) => {
+    if (!game.bestEVBet) return null;
+    const { winProb, odds } = game.bestEVBet;
+    const kellyFraction = kellyCriterion(winProb, odds);
+    return bankroll * kellyFraction;
+};
+
+// --- Child Components (nested) ---
+function Header({ onHelpClick }) {
+    return (
+        <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
+             <button onClick={onHelpClick} className="absolute top-4 left-4 p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+            </button>
+            <div className="text-center">
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
+                    Audit the Odds
+                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.1</span>
+                </h1>
+                <p className="text-lg text-slate-600 dark:text-slate-400">
+                    Find value by analyzing live betting lines for today's games.
+                </p>
+            </div>
+        </header>
+    );
+}
+function GameCard({ game, addBet }) {
+    const [awayProb, setAwayProb] = useState(50);
+    const [trueAwayProb, setTrueAwayProb] = useState(50);
+    const [evAway, setEvAway] = useState(0);
+    const [evHome, setEvHome] = useState(0);
+    const awayTeamInfo = getTeamInfo(game.away_team);
+    const homeTeamInfo = getTeamInfo(game.home_team);
+
+    useEffect(() => {
+        const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+        const initialProb = momentumResult.prob * 100;
+        setAwayProb(initialProb);
+        setTrueAwayProb(initialProb);
+    }, [game]);
+
+    const handleSliderChange = (e) => {
+        const newProb = parseFloat(e.target.value);
+        setTrueAwayProb(newProb);
+        const homeProb = 100 - newProb;
+        setEvAway(calculateEV(newProb / 100, game.moneyline_away));
+        setEvHome(calculateEV(homeProb / 100, game.moneyline_home));
+    };
+
+    const handleBetClick = (teamName, odds) => {
+        const betType = teamName === game.away_team ? 'Moneyline' : 'Moneyline';
+        const ev = teamName === game.away_team ? evAway : evHome;
+        const bet = {
+            id: `${game.id}-${teamName}`,
+            gameId: game.id,
+            team: teamName,
+            odds: odds,
+            ev: ev,
+            betType: betType,
+            sport: getGameSport(game),
+        };
+        addBet(bet);
+    };
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
+            <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
+            <div className="grid md:grid-cols-2 gap-x-6 gap-y-8 items-start pt-4">
+                <div className="flex items-center justify-around text-center">
+                    <div className="flex flex-col items-center space-y-1 w-2/5">
+                        <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
+                        <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
+                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
+                        <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away)} className="utility-btn text-sm">Add</button>
+                    </div>
+                    <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
+                    <div className="flex flex-col items-center space-y-1 w-2/5">
+                         <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
+                        <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
+                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
+                        <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home)} className="utility-btn text-sm">Add</button>
+                    </div>
+                </div>
+                <div className="flex flex-col space-y-4">
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-semibold">True Probability:</span>
+                            <span className="font-mono text-sm text-blue-600 dark:text-blue-400">{trueAwayProb.toFixed(1)}%</span>
+                        </div>
+                        <input type="range" min="1" max="99" value={trueAwayProb} onChange={handleSliderChange} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-blue-700" />
+                    </div>
+                    <div className="flex flex-col space-y-2 text-sm text-center">
+                        <div className="flex justify-between items-center bg-green-50 rounded-lg p-2 dark:bg-green-900/20 dark:text-green-400">
+                             <span className="font-semibold">{awayTeamInfo.name} EV:</span>
+                             <span className="font-mono">{evAway.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-red-50 rounded-lg p-2 dark:bg-red-900/20 dark:text-red-400">
+                            <span className="font-semibold">{homeTeamInfo.name} EV:</span>
+                            <span className="font-mono">{evHome.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, handleGenerateParlayClick }) {
+    return (
+        <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+             <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center space-x-2">
+                    <input type="checkbox" checked={filters.showPositiveEVOnly} onChange={(e) => setFilters(prev => ({ ...prev, showPositiveEVOnly: e.target.checked }))} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
+                    <span className="text-sm">Only Show +EV</span>
+                </label>
+                 <label className="flex items-center space-x-2">
+                    <input type="checkbox" checked={filters.fadeMomentum} onChange={(e) => setFilters(prev => ({ ...prev, fadeMomentum: e.target.checked }))} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
+                    <span className="text-sm">Fade Momentum</span>
+                </label>
+            </div>
+            <div className="flex justify-between items-center mt-4">
+                <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
+                <button onClick={handleBuildKellyBets} className="utility-btn text-sm">Build Kelly Bets</button>
+                <button onClick={handleGenerateParlayClick} className="utility-btn text-sm">Generate Parlay</button>
+            </div>
+        </div>
+    );
+}
+
+function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
+    return (
+        <div className="lg:order-last lg:col-span-1">
+             <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                 <h3 className="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
+                 {betSlip.length === 0 ? (
+                    <p className="text-center text-sm text-slate-500 py-4">Your bet slip is empty.</p>
+                 ) : (
+                    <ul className="space-y-3">
+                        {betSlip.map(bet => (
+                             <li key={bet.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg dark:bg-slate-800">
+                                 <div>
+                                     <p className="text-sm font-semibold">{bet.team}</p>
+                                     <p className="text-xs text-slate-500 dark:text-slate-400">
+                                         Odds: {decimalToAmerican(bet.odds)} | EV: {bet.ev.toFixed(2)}%
+                                     </p>
+                                 </div>
+                                 <button onClick={() => removeBet(bet.id)} className="text-red-500 hover:text-red-700">
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                 </button>
+                             </li>
+                        ))}
+                    </ul>
+                 )}
+                 {betSlip.length > 0 && (
+                    <div className="flex justify-between mt-4">
+                        <button onClick={clearBetSlip} className="utility-btn text-sm">Clear</button>
+                        <button onClick={copyBetSlip} className="utility-btn text-sm">Copy Slip</button>
+                    </div>
+                 )}
+             </div>
+         </div>
+    );
+}
+function HelpModal({ onClose }) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-2xl font-bold">How It Works</h3>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
+                    <p><strong>1. Fetch Data:</strong> The app starts by fetching today's (or tomorrow's, if it's late) games and the latest odds from The Odds API.</p>
+                    <p><strong>2. Calculate Line Movement Momentum:</strong> For each game, the app makes a second API call to get the odds from **6 hours ago**. It compares these opening odds to the current odds to calculate the true line movement.</p>
+                    <p><strong>3. Adjust Probability:</strong> The initial probability for each team is adjusted based on this line movement. A line moving in a team's favor indicates positive market momentum. This is reflected in the initial position of the slider and the trend arrow (⬆️ or ⬇️).</p>
+                    <p><strong>4. Calculate Expected Value (EV):</strong> As you adjust the "True Probability" slider, the app instantly calculates the Expected Value for every available bet.</p>
+                    <p><strong>5. Calculate Kelly Criterion Bet Size:</strong> When you enter a bankroll and click "Build Kelly Bets", the app calculates the optimal bet size for the highest +EV opportunity in each qualifying game.</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function RoundRobinModal({ onClose }) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-2xl font-bold">Round Robin Builder</h3>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
+                    <p>This modal will contain the UI for building a round robin parlay from your bet slip. Functionality to be implemented.</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function StrategyParlayModal({ onClose }) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-2xl font-bold">Strategy Parlay Builder</h3>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
+                    <p>This modal will contain the UI for generating a parlay based on your pre-defined strategies. Functionality to be implemented.</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // --- Main App Component ---
 
 export default function App() {
@@ -76,7 +294,19 @@ export default function App() {
     const [error, setError] = useState(null);
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [allGames, setAllGames] = useState([]);
+    const [betSlip, setBetSlip] = useState([]);
+    const [filters, setFilters] = useState({
+        showPositiveEVOnly: false,
+        sortBy: 'commence_time',
+        minOdds: 1,
+        minMomentum: 0,
+        bankroll: 100,
+        homeTeamsOnly: false,
+        fadeMomentum: false,
+    });
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+    const [isRoundRobinModalOpen, setIsRoundRobinModalOpen] = useState(false);
+    const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
 
@@ -164,17 +394,132 @@ export default function App() {
         }
     };
 
-    const resetApp = () => {
+    const resetApp = useCallback(() => {
         setIsLoading(false);
         setError(null);
         setIsAnalyzed(false);
         setAllGames([]);
-    };
-
-    const toggleHelpModal = useCallback(() => {
-        setIsHelpModalOpen(prev => !prev);
+        setBetSlip([]);
     }, []);
-    
+
+    const toggleHelpModal = useCallback(() => setIsHelpModalOpen(prev => !prev), []);
+    const toggleRoundRobinModal = useCallback(() => setIsRoundRobinModalOpen(prev => !prev), []);
+    const toggleStrategyModal = useCallback(() => setIsStrategyModalOpen(prev => !prev), []);
+
+    const addBet = useCallback((bet) => {
+        setBetSlip(prev => {
+            const exists = prev.some(b => b.id === bet.id);
+            if (!exists) {
+                return [...prev, bet];
+            }
+            return prev;
+        });
+    }, []);
+
+    const removeBet = useCallback((id) => {
+        setBetSlip(prev => prev.filter(bet => bet.id !== id));
+    }, []);
+
+    const clearBetSlip = useCallback(() => setBetSlip([]), []);
+
+    const copyBetSlip = useCallback(() => {
+        const betSlipText = betSlip.map(bet => {
+            const evDisplay = bet.ev >= 0 ? `+${bet.ev.toFixed(2)}%` : `${bet.ev.toFixed(2)}%`;
+            return `Bet: ${bet.team} | Odds: ${decimalToAmerican(bet.odds)} | EV: ${evDisplay}`;
+        }).join('\n');
+
+        const header = `Audit the Odds Bet Slip\nGenerated on: ${new Date().toLocaleString()}\n---\n`;
+        const footer = `\n---\nFind value at audittheodds.com`;
+        
+        const textToCopy = header + betSlipText + footer;
+        
+        const tempTextarea = document.createElement('textarea');
+        tempTextarea.value = textToCopy;
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempTextarea);
+
+    }, [betSlip]);
+
+    const handleBuildKellyBets = useCallback(() => {
+        const kellyBets = allGames
+            .map(game => {
+                const awayEV = calculateEV(game.moneyline_away, getMomentumAdjustedProbability(game, game.historicalData).prob);
+                const homeEV = calculateEV(game.moneyline_home, 1 - getMomentumAdjustedProbability(game, game.historicalData).prob);
+                
+                let bestEVBet = null;
+                if (awayEV > homeEV && awayEV > 0) {
+                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: getMomentumAdjustedProbability(game, game.historicalData).prob };
+                } else if (homeEV > awayEV && homeEV > 0) {
+                     bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: 1 - getMomentumAdjustedProbability(game, game.historicalData).prob };
+                }
+
+                if (bestEVBet) {
+                    const kellyBetSize = calculateKellyBet(filters.bankroll, { bestEVBet });
+                    if (kellyBetSize > 0) {
+                        return {
+                            ...bestEVBet,
+                            betSize: kellyBetSize,
+                            gameId: game.id,
+                            sport: getGameSport(game)
+                        };
+                    }
+                }
+                return null;
+            })
+            .filter(bet => bet !== null);
+
+        setBetSlip(kellyBets.map(bet => ({
+            id: `${bet.gameId}-${bet.team}`,
+            gameId: bet.gameId,
+            team: bet.team,
+            odds: bet.odds,
+            ev: bet.ev,
+            betType: 'Moneyline',
+            sport: bet.sport,
+            betSize: bet.betSize,
+        })));
+
+    }, [allGames, filters.bankroll]);
+
+    const handleGenerateParlayClick = useCallback(() => {
+        // Placeholder for future implementation
+        toggleStrategyModal();
+    }, [toggleStrategyModal]);
+
+    const filteredGames = useMemo(() => {
+        let filtered = allGames;
+
+        // Apply filters
+        if (filters.showPositiveEVOnly) {
+            filtered = filtered.filter(game => {
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const awayEV = calculateEV(momentumResult.prob, game.moneyline_away);
+                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+                return awayEV > 0 || homeEV > 0;
+            });
+        }
+        if (filters.homeTeamsOnly) {
+             filtered = filtered.filter(game => {
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+                return homeEV > 0;
+            });
+        }
+        if (filters.fadeMomentum) {
+             filtered = filtered.filter(game => {
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const evAway = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+                const evHome = calculateEV(momentumResult.prob, game.moneyline_away);
+                return evAway > 0 || evHome > 0;
+            });
+        }
+        // TODO: Add other filters here
+        
+        return filtered;
+    }, [allGames, filters]);
+
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
             <Header onHelpClick={toggleHelpModal} />
@@ -200,12 +545,12 @@ export default function App() {
                 )}
                 {isAnalyzed && !isLoading && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-                         <BetSlip />
+                         <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
                         <div className="lg:order-first lg:col-span-2">
-                            <FilterControls resetApp={resetApp} />
+                            <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} handleGenerateParlayClick={handleGenerateParlayClick} />
                             <div className="grid grid-cols-1 gap-6">
-                                {allGames.map((game) => (
-                                    <GameCard key={game.id} game={game} />
+                                {filteredGames.map((game) => (
+                                    <GameCard key={game.id} game={game} addBet={addBet} />
                                 ))}
                             </div>
                         </div>
@@ -213,6 +558,8 @@ export default function App() {
                 )}
             </main>
             {isHelpModalOpen && <HelpModal onClose={toggleHelpModal} />}
+            {isRoundRobinModalOpen && <RoundRobinModal onClose={toggleRoundRobinModal} />}
+            {isStrategyModalOpen && <StrategyParlayModal onClose={toggleStrategyModal} />}
         </div>
     );
 }
