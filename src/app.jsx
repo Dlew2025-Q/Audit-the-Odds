@@ -515,7 +515,7 @@ export default function App() {
             ev: bet.ev,
             betType: 'Moneyline',
             sport: bet.sport,
-            betSize: bet.betSize,
+            betSize: bet.betSize, // Correctly pass the calculated betSize
         })));
 
     }, [allGames, filters.bankroll]);
