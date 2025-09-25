@@ -61,7 +61,7 @@ const getTeamInfo = (teamName) => {
 const SPORT_MAP = { 'NFL': 'Football', 'CFL': 'Football', 'NCAAF': 'Football', 'MLB': 'Baseball', 'NBA': 'Basketball', 'WNBA': 'Basketball', 'SOCCER': 'Soccer', 'NHL': 'Hockey', 'NCAAB': 'Basketball' };
 const getGameSport = (game) => {
      if (game.sport_key && SPORT_MAP[game.sport_key.toUpperCase().split('_')[1]]) { return SPORT_MAP[game.sport_key.toUpperCase().split('_')[1]]; }
-     if(game.sport_title && SPORT_MAP[game.sport_title]) return SPORT_MAP[game.sport_title];
+     if(game.sport_title && SPORT_MAP[game.sport_title]) return SPORT[game.sport_title];
     return 'Unknown';
 };
 
@@ -93,19 +93,19 @@ function Header({ onHelpClick }) {
     );
 }
 function GameCard({ game, addBet }) {
-    const [awayProb, setAwayProb] = useState(50);
     const [trueAwayProb, setTrueAwayProb] = useState(50);
     const [evAway, setEvAway] = useState(0);
     const [evHome, setEvHome] = useState(0);
     const awayTeamInfo = getTeamInfo(game.away_team);
     const homeTeamInfo = getTeamInfo(game.home_team);
+    const momentumResult = useMemo(() => getMomentumAdjustedProbability(game, game.historicalData), [game]);
 
     useEffect(() => {
-        const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
         const initialProb = momentumResult.prob * 100;
-        setAwayProb(initialProb);
         setTrueAwayProb(initialProb);
-    }, [game]);
+        setEvAway(calculateEV(initialProb / 100, game.moneyline_away));
+        setEvHome(calculateEV((100 - initialProb) / 100, game.moneyline_home));
+    }, [game, momentumResult]);
 
     const handleSliderChange = (e) => {
         const newProb = parseFloat(e.target.value);
@@ -116,7 +116,7 @@ function GameCard({ game, addBet }) {
     };
 
     const handleBetClick = (teamName, odds) => {
-        const betType = teamName === game.away_team ? 'Moneyline' : 'Moneyline';
+        const betType = 'Moneyline';
         const ev = teamName === game.away_team ? evAway : evHome;
         const bet = {
             id: `${game.id}-${teamName}`,
@@ -128,6 +128,11 @@ function GameCard({ game, addBet }) {
             sport: getGameSport(game),
         };
         addBet(bet);
+    };
+
+    const momentumArrow = () => {
+        if (momentumResult.shift === 0) return '';
+        return momentumResult.shift > 0 ? '⬆️' : '⬇️';
     };
 
     return (
@@ -167,6 +172,7 @@ function GameCard({ game, addBet }) {
                             <span className="font-mono">{evHome.toFixed(2)}%</span>
                         </div>
                     </div>
+                     <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
                 </div>
             </div>
         </div>
@@ -174,16 +180,40 @@ function GameCard({ game, addBet }) {
 }
 
 function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, handleGenerateParlayClick }) {
+     const handleFilterChange = useCallback((e) => {
+        const { name, value, type, checked } = e.target;
+        setFilters(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value)
+        }));
+    }, [setFilters]);
+    
     return (
         <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
              <div className="grid grid-cols-2 gap-4">
                 <label className="flex items-center space-x-2">
-                    <input type="checkbox" checked={filters.showPositiveEVOnly} onChange={(e) => setFilters(prev => ({ ...prev, showPositiveEVOnly: e.target.checked }))} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
+                    <input type="checkbox" name="showPositiveEVOnly" checked={filters.showPositiveEVOnly} onChange={handleFilterChange} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
                     <span className="text-sm">Only Show +EV</span>
                 </label>
                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" checked={filters.fadeMomentum} onChange={(e) => setFilters(prev => ({ ...prev, fadeMomentum: e.target.checked }))} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
+                    <input type="checkbox" name="fadeMomentum" checked={filters.fadeMomentum} onChange={handleFilterChange} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
                     <span className="text-sm">Fade Momentum</span>
+                </label>
+                 <label className="flex flex-col space-y-1">
+                    <span className="text-sm">Min Odds</span>
+                    <input type="number" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" step="0.1" />
+                </label>
+                 <label className="flex flex-col space-y-1">
+                    <span className="text-sm">Min Momentum %</span>
+                    <input type="number" name="minMomentum" value={filters.minMomentum} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                </label>
+                <label className="flex flex-col space-y-1 col-span-2">
+                    <span className="text-sm">Sort By</span>
+                    <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="form-select rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <option value="commence_time">Game Time</option>
+                        <option value="ev">Expected Value</option>
+                        <option value="momentum">Momentum</option>
+                    </select>
                 </label>
             </div>
             <div className="flex justify-between items-center mt-4">
@@ -445,14 +475,15 @@ export default function App() {
     const handleBuildKellyBets = useCallback(() => {
         const kellyBets = allGames
             .map(game => {
-                const awayEV = calculateEV(game.moneyline_away, getMomentumAdjustedProbability(game, game.historicalData).prob);
-                const homeEV = calculateEV(game.moneyline_home, 1 - getMomentumAdjustedProbability(game, game.historicalData).prob);
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const awayEV = calculateEV(momentumResult.prob, game.moneyline_away);
+                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
                 
                 let bestEVBet = null;
                 if (awayEV > homeEV && awayEV > 0) {
-                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: getMomentumAdjustedProbability(game, game.historicalData).prob };
+                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: momentumResult.prob };
                 } else if (homeEV > awayEV && homeEV > 0) {
-                     bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: 1 - getMomentumAdjustedProbability(game, game.historicalData).prob };
+                     bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: 1 - momentumResult.prob };
                 }
 
                 if (bestEVBet) {
@@ -484,19 +515,33 @@ export default function App() {
     }, [allGames, filters.bankroll]);
 
     const handleGenerateParlayClick = useCallback(() => {
-        // Placeholder for future implementation
         toggleStrategyModal();
     }, [toggleStrategyModal]);
 
     const filteredGames = useMemo(() => {
-        let filtered = allGames;
+        let filtered = allGames.map(game => {
+            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+            const evAway = calculateEV(momentumResult.prob, game.moneyline_away);
+            const evHome = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+            const bestEV = Math.max(evAway, evHome);
+            const momentum = momentumResult.shift;
+            return { ...game, evAway, evHome, bestEV, momentum };
+        });
 
         // Apply filters
         if (filters.showPositiveEVOnly) {
-            filtered = filtered.filter(game => {
-                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const awayEV = calculateEV(momentumResult.prob, game.moneyline_away);
-                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+            filtered = filtered.filter(game => game.bestEV > 0);
+        }
+        if (filters.minOdds > 1) {
+            filtered = filtered.filter(game => game.moneyline_away >= filters.minOdds || game.moneyline_home >= filters.minOdds);
+        }
+        if (filters.minMomentum > 0) {
+            filtered = filtered.filter(game => Math.abs(game.momentum * 100) >= filters.minMomentum);
+        }
+        if (filters.fadeMomentum) {
+             filtered = filtered.filter(game => {
+                const awayEV = calculateEV(1 - getMomentumAdjustedProbability(game, game.historicalData).prob, game.moneyline_home);
+                const homeEV = calculateEV(getMomentumAdjustedProbability(game, game.historicalData).prob, game.moneyline_away);
                 return awayEV > 0 || homeEV > 0;
             });
         }
@@ -507,15 +552,16 @@ export default function App() {
                 return homeEV > 0;
             });
         }
-        if (filters.fadeMomentum) {
-             filtered = filtered.filter(game => {
-                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const evAway = calculateEV(1 - momentumResult.prob, game.moneyline_home);
-                const evHome = calculateEV(momentumResult.prob, game.moneyline_away);
-                return evAway > 0 || evHome > 0;
-            });
+        
+        // Apply sorting
+        if (filters.sortBy === 'ev') {
+            filtered.sort((a, b) => b.bestEV - a.bestEV);
+        } else if (filters.sortBy === 'momentum') {
+             filtered.sort((a, b) => Math.abs(b.momentum) - Math.abs(a.momentum));
+        } else {
+            // Default sort by commence_time
+            filtered.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
         }
-        // TODO: Add other filters here
         
         return filtered;
     }, [allGames, filters]);
