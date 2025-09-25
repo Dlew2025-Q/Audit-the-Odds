@@ -103,12 +103,9 @@ function Header({ onHelpClick }) {
                     );
                 }
              `}</style>
-             <div className="flex justify-between items-center relative z-10">
+             <div className="flex justify-end items-center relative z-10">
                  <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-                </button>
-                 <button className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hidden">
-                    {/* Night mode toggle removed */}
                 </button>
              </div>
             <div className="text-center relative z-10">
@@ -285,7 +282,7 @@ function GameCard({ game, addBet, betTypeFilter }) {
     );
 }
 
-function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets }) {
+function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, setBetTypeFilter, betTypeFilter }) {
      const handleFilterChange = useCallback((e) => {
         const { name, value, type, checked } = e.target;
         setFilters(prev => ({
@@ -325,6 +322,12 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets })
                     <span className="text-sm">Bankroll</span>
                     <input type="number" name="bankroll" value={filters.bankroll} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
                 </label>
+            </div>
+            <div className="flex space-x-2 mt-4 text-sm font-semibold text-center">
+                <button onClick={() => setBetTypeFilter('All')} className={`utility-btn flex-1 ${betTypeFilter === 'All' ? 'bg-blue-600 text-white' : ''}`}>All</button>
+                <button onClick={() => setBetTypeFilter('Moneyline')} className={`utility-btn flex-1 ${betTypeFilter === 'Moneyline' ? 'bg-blue-600 text-white' : ''}`}>Moneyline</button>
+                <button onClick={() => setBetTypeFilter('Spread')} className={`utility-btn flex-1 ${betTypeFilter === 'Spread' ? 'bg-blue-600 text-white' : ''}`}>Spread</button>
+                <button onClick={() => setBetTypeFilter('Total')} className={`utility-btn flex-1 ${betTypeFilter === 'Total' ? 'bg-blue-600 text-white' : ''}`}>Total</button>
             </div>
             <div className="flex justify-between items-center mt-4">
                 <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
@@ -391,9 +394,6 @@ function HelpModal({ onClose }) {
     );
 }
 
-// RoundRobinModal removed
-// StrategyParlayModal removed
-
 // --- Main App Component ---
 
 export default function App() {
@@ -413,17 +413,8 @@ export default function App() {
         fadeMomentum: false,
     });
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [isNightMode, setIsNightMode] = useState(false);
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
-
-    useEffect(() => {
-        if (isNightMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isNightMode]);
 
     const fetchAndAnalyzeGames = async () => {
         setIsLoading(true);
@@ -571,8 +562,6 @@ Filter Settings:
 `;
         const footer = `\n--\nFind your edge at audittheodds.com`;
         
-        const textToCopy = header + betSlipText + footer;
-        
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
         document.body.appendChild(tempTextarea);
@@ -613,7 +602,7 @@ Filter Settings:
                         maxEV = awaySpreadEV;
                         bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` };
                     }
-                    const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds); 
+                    const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds);
                     if (homeSpreadEV > maxEV) {
                         maxEV = homeSpreadEV;
                         bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` };
