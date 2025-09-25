@@ -1,0 +1,9 @@
+/* We will import Tailwind here in a real project, but for this environment we rely on the script in index.html */
+/* For now, this file can contain any custom CSS that isn't handled by Tailwind */
+
+body {
+    font-family: 'Inter', sans-serif;
+    /* Other global styles can go here */
+}
+
+/* We can move the CSS variables here from the old file later */
