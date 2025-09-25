@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // --- Helper Functions (Pure Logic) ---
 const getNoVigProb = (odds1, odds2) => {
@@ -15,7 +15,8 @@ const decimalToAmerican = (decimalOdds) => {
     return `${(-100 / (decimalOdds - 1)).toFixed(0)}`;
 };
 const americanToDecimal = (americanOdds) => {
-    if (isNaN(americanOdds) || americanOdds === 0) return NaN;
+    if (isNaN(americanOdds) || isNaN(parseFloat(americanOdds))) return NaN;
+    americanOdds = parseFloat(americanOdds);
     if (americanOdds >= 100) return (americanOdds / 100) + 1;
     if (americanOdds <= -100) return (100 / Math.abs(americanOdds)) + 1;
     return NaN;
@@ -61,43 +62,38 @@ function Header() {
     );
 }
 
-function GameCard({ game, index }) {
+function GameCard({ game }) {
     const [awayProb, setAwayProb] = useState(50);
     
-    // This effect will run once when the component mounts, and when the game data changes
     useEffect(() => {
          const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
          setAwayProb(momentumResult.prob * 100);
     }, [game]);
 
-    const handleSliderChange = (e) => {
-        setAwayProb(parseFloat(e.target.value));
-    };
-
     const awayTeamInfo = getTeamInfo(game.away_team);
     const homeTeamInfo = getTeamInfo(game.home_team);
 
+    // Placeholder for all the complex logic that will be migrated
     return (
-        <div className="game-card bg-white dark:bg-slate-900">
-            <div className="relative"><span className="absolute -top-6 -left-6 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl" style={{backgroundColor: 'var(--accent-color-light)', color: 'var(--accent-text-dark)'}}>{getGameSport(game)}</span></div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
+            <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
             <div className="grid md:grid-cols-2 gap-x-6 gap-y-8 items-start pt-4">
                 <div className="flex items-center justify-around text-center">
                     <div className="flex flex-col items-center space-y-1 w-2/5">
                         <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
                         <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
-                        <span className="font-semibold text-lg" style={{color: 'var(--accent-color)'}}>{decimalToAmerican(game.moneyline_away)}</span>
+                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
                     </div>
                     <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
                     <div className="flex flex-col items-center space-y-1 w-2/5">
                          <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
                         <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
-                        <span className="font-semibold text-lg" style={{color: 'var(--accent-color)'}}>{decimalToAmerican(game.moneyline_home)}</span>
+                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
                     </div>
                 </div>
-                {/* Controls and results would go here */}
                 <div>
-                     {/* This is a placeholder for the complex slider and EV results logic */}
-                     <p className="text-center text-sm text-slate-500">Analysis controls will be here.</p>
+                     <p className="text-center text-sm text-slate-500">Analysis controls and EV results will be fully migrated here.</p>
+                     <p className="text-center font-mono mt-2">{awayProb.toFixed(1)}%</p>
                 </div>
             </div>
         </div>
@@ -112,11 +108,8 @@ export default function App() {
     const [error, setError] = useState(null);
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [allGames, setAllGames] = useState([]);
-    const [betSlip, setBetSlip] = useState([]);
-    const [slipContext, setSlipContext] = useState({ type: 'Custom Bet Slip', settings: '' });
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
-    const appVersion = 'v12.0 (React)';
 
     const fetchAndAnalyzeGames = async () => {
         setIsLoading(true);
@@ -177,16 +170,20 @@ export default function App() {
                 const bookmaker = game.bookmakers?.[0];
                 if(!bookmaker) return null;
                 const moneylineMarket = bookmaker.markets.find(m => m.key === 'h2h');
-                const spreadMarket = bookmaker.markets.find(m => m.key === 'spreads');
-                const totalMarket = bookmaker.markets.find(m => m.key === 'totals');
                 const awayML = moneylineMarket?.outcomes.find(o => o.name === game.away_team)?.price;
                 const homeML = moneylineMarket?.outcomes.find(o => o.name === game.home_team)?.price;
-                const awaySpread = spreadMarket?.outcomes.find(o => o.name === game.away_team);
-                const homeSpread = spreadMarket?.outcomes.find(o => o.name === game.home_team);
-                const overTotal = totalMarket?.outcomes.find(o => o.name === 'Over');
-                const underTotal = totalMarket?.outcomes.find(o => o.name === 'Under');
-
-                return { ...game, moneyline_away: awayML, moneyline_home: homeML, spread_away: awaySpread?.point, spread_away_odds: awaySpread?.price, spread_home: homeSpread?.point, spread_home_odds: homeSpread?.price, total_over: overTotal?.point, total_over_odds: overTotal?.price, total_under: underTotal?.point, total_under_odds: underTotal?.price, historicalData: historicalDataMap.get(game.id) };
+                
+                return { 
+                    id: game.id,
+                    sport_key: game.sport_key,
+                    sport_title: game.sport_title,
+                    commence_time: game.commence_time,
+                    home_team: game.home_team,
+                    away_team: game.away_team,
+                    moneyline_away: awayML, 
+                    moneyline_home: homeML, 
+                    historicalData: historicalDataMap.get(game.id) 
+                };
             }).filter(g => g !== null);
 
             setAllGames(processedGames);
@@ -203,7 +200,6 @@ export default function App() {
         setError(null);
         setIsAnalyzed(false);
         setAllGames([]);
-        setBetSlip([]);
     };
     
     return (
@@ -220,7 +216,7 @@ export default function App() {
                 {isLoading && (
                     <div className="text-center py-10">
                          <svg className="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <p id="processing-text" className="mt-4 text-slate-500 dark:text-slate-400">Fetching data...</p>
+                        <p className="mt-4 text-slate-500 dark:text-slate-400">Fetching data...</p>
                     </div>
                 )}
                 {error && (
@@ -231,21 +227,17 @@ export default function App() {
                 )}
                 {isAnalyzed && !isLoading && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-                        {/* Bet Slip Area */}
                          <div className="lg:order-last lg:col-span-1">
-                             {/* BetSlip component will go here */}
                              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                                  <h3 className="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
                                   <p className="text-center text-sm text-slate-500 py-4">Functionality to be migrated.</p>
                              </div>
                          </div>
                         <div className="lg:order-first lg:col-span-2">
-                             {/* Filters Component */}
                             <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                <p>Filters placeholder</p>
+                                <p className="text-center">Filters and Parlay Builders will be migrated here.</p>
                                 <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
                             </div>
-                            {/* Game List */}
                             <div className="grid grid-cols-1 gap-6">
                                 {allGames.map((game, index) => (
                                     <GameCard key={game.id} game={game} index={index} />
