@@ -1,9 +1,12 @@
-/* We will import Tailwind here in a real project, but for this environment we rely on the script in index.html */
-/* For now, this file can contain any custom CSS that isn't handled by Tailwind */
+/* In a local development environment with a build step, you would use: */
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+/* For this Render deployment, we rely on the Tailwind CDN script in public/index.html */
+/* This file can contain any custom CSS that isn't handled by Tailwind utilities. */
 
 body {
     font-family: 'Inter', sans-serif;
-    /* Other global styles can go here */
 }
 
-/* We can move the CSS variables here from the old file later */
