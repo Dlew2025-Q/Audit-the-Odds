@@ -178,7 +178,7 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, h
         const { name, value, type, checked } = e.target;
         setFilters(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) : value)
+            [name]: type === 'checkbox' ? checked : value
         }));
     }, [setFilters]);
     
@@ -195,7 +195,7 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, h
                 </label>
                  <label className="flex flex-col space-y-1">
                     <span className="text-sm">Min Odds</span>
-                    <input type="number" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" step="0.1" />
+                    <input type="text" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" placeholder="+100 or -110" />
                 </label>
                  <label className="flex flex-col space-y-1">
                     <span className="text-sm">Min Momentum %</span>
@@ -327,7 +327,7 @@ export default function App() {
     const [filters, setFilters] = useState({
         showPositiveEVOnly: false,
         sortBy: 'commence_time',
-        minOdds: 1,
+        minOdds: '', // Changed to empty string to accept American odds format
         minMomentum: 0,
         bankroll: 100,
         homeTeamsOnly: false,
@@ -466,7 +466,7 @@ export default function App() {
 Filter Settings:
   - Show +EV Only: ${filters.showPositiveEVOnly ? '✅' : '❌'}
   - Min Momentum: ${filters.minMomentum}%
-  - Min Odds: ${filters.minOdds}
+  - Min Odds: ${filters.minOdds || 'N/A'}
 --
 `;
         const footer = `\n--\nFind your edge at audittheodds.com`;
@@ -542,8 +542,11 @@ Filter Settings:
         if (filters.showPositiveEVOnly) {
             filtered = filtered.filter(game => game.bestEV > 0);
         }
-        if (filters.minOdds > 1) {
-            filtered = filtered.filter(game => game.moneyline_away >= filters.minOdds || game.moneyline_home >= filters.minOdds);
+        if (filters.minOdds) {
+            const minOddsDecimal = americanToDecimal(filters.minOdds);
+            if (!isNaN(minOddsDecimal)) {
+                filtered = filtered.filter(game => game.moneyline_away >= minOddsDecimal || game.moneyline_home >= minOddsDecimal);
+            }
         }
         if (filters.minMomentum > 0) {
             filtered = filtered.filter(game => Math.abs(game.momentum * 100) >= filters.minMomentum);
