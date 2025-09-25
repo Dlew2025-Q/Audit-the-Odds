@@ -66,12 +66,6 @@ const getGameSport = (game) => {
 };
 
 const kellyCriterion = (winProb, odds) => (winProb * (odds - 1) - (1 - winProb)) / (odds - 1);
-const calculateKellyBet = (bankroll, game) => {
-    if (!game.bestEVBet) return null;
-    const { winProb, odds } = game.bestEVBet;
-    const kellyFraction = kellyCriterion(winProb, odds);
-    return bankroll * kellyFraction;
-};
 
 // --- Child Components (nested) ---
 function Header({ onHelpClick }) {
@@ -460,12 +454,22 @@ export default function App() {
     const copyBetSlip = useCallback(() => {
         const betSlipText = betSlip.map(bet => {
             const evDisplay = bet.ev >= 0 ? `+${bet.ev.toFixed(2)}%` : `${bet.ev.toFixed(2)}%`;
-            const betSizeText = bet.betSize ? ` | Bet Size: $${bet.betSize.toFixed(2)}` : '';
-            return `• ${bet.team} (${bet.sport}) | Odds: ${decimalToAmerican(bet.odds)} | EV: ${evDisplay}${betSizeText}`;
+            const betSizeText = bet.betSize ? ` $${bet.betSize.toFixed(2)}` : 'N/A';
+            const oddsText = decimalToAmerican(bet.odds);
+            return `> ${bet.team} (${bet.sport}) | Odds: ${oddsText} | EV: ${evDisplay} | Bet Size: ${betSizeText}`;
         }).join('\n');
 
-        const header = `Audit the Odds Bet Slip\nGenerated on: ${new Date().toLocaleString()}\nBankroll: $${filters.bankroll.toFixed(2)}\n---\n`;
-        const footer = `\n---\nFind value at audittheodds.com`;
+        const header = `📋 Audit the Odds Bet Slip
+🗓️ Generated on: ${new Date().toLocaleString()}
+💰 Bankroll: $${filters.bankroll.toFixed(2)}
+--
+Filter Settings:
+  - Show +EV Only: ${filters.showPositiveEVOnly ? '✅' : '❌'}
+  - Min Momentum: ${filters.minMomentum}%
+  - Min Odds: ${filters.minOdds}
+--
+`;
+        const footer = `\n--\nFind your edge at audittheodds.com`;
         
         const textToCopy = header + betSlipText + footer;
         
@@ -476,7 +480,7 @@ export default function App() {
         document.execCommand('copy');
         document.body.removeChild(tempTextarea);
 
-    }, [betSlip, filters.bankroll]);
+    }, [betSlip, filters.bankroll, filters.showPositiveEVOnly, filters.minMomentum, filters.minOdds]);
 
     const handleBuildKellyBets = useCallback(() => {
         const kellyBets = allGames
@@ -515,7 +519,7 @@ export default function App() {
             ev: bet.ev,
             betType: 'Moneyline',
             sport: bet.sport,
-            betSize: bet.betSize, // Correctly pass the calculated betSize
+            betSize: bet.betSize,
         })));
 
     }, [allGames, filters.bankroll]);
