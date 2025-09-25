@@ -680,9 +680,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.strategy-select').forEach(select => strategies[select.dataset.sport] = select.value);
         const selectedSports = new Set(Array.from(document.querySelectorAll('.sport-toggle-checkbox:checked')).map(cb => cb.dataset.sport));
         const minDecimalOdds = !isNaN(parseInt(minOddsFilter.value, 10)) ? americanToDecimal(parseInt(minOddsFilter.value, 10)) : null;
+        const minMomentum = parseFloat(minMomentumFilter.value);
         let generatedBets = [];
         const usedGameIndices = new Set();
-        const availableGames = ALL_SPORTS_DATA.map((game, index) => ({ ...game, originalIndex: index })).filter(game => selectedSports.has(getGameSport(game)));
+        let availableGames = ALL_SPORTS_DATA.map((game, index) => ({ ...game, originalIndex: index })).filter(game => selectedSports.has(getGameSport(game)));
+
+        if (!isNaN(minMomentum) && minMomentum > 0) {
+            availableGames = availableGames.filter(game => {
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                if (momentumResult.status === 'no_data') return false; 
+                return Math.abs(momentumResult.shift * 100) >= minMomentum;
+            });
+        }
 
         availableGames.forEach((game) => {
             const sport = getGameSport(game);
