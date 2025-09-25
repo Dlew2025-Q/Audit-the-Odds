@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const minOddsFilter = document.getElementById('min-odds-filter');
     const homeTeamsOnlyToggle = document.getElementById('home-teams-only-toggle');
     const fadeMomentumToggle = document.getElementById('fade-momentum-toggle');
+    const minMomentumFilter = document.getElementById('min-momentum-filter');
     
     const betSlipArea = document.getElementById('bet-slip-area');
     const betSlipList = document.getElementById('bet-slip-list');
@@ -374,11 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const momentumAdjustedProb = momentumResult.prob;
         const initialSliderValue = Math.round(momentumAdjustedProb * 1000);
         let momentumIndicatorHtml = '';
-
+        
+        card.dataset.maxMomentum = 0;
         if (momentumResult.status === 'no_data') {
             momentumIndicatorHtml = `<span class="ml-2 flex items-center text-xs font-bold" style="color: var(--text-secondary);" title="Historical odds not available for momentum calculation."><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg><span>N/A</span></span>`;
         } else {
             const probabilityShift = momentumResult.shift * 100;
+            card.dataset.maxMomentum = Math.abs(probabilityShift);
             const shiftColor = probabilityShift > 0.1 ? 'var(--positive-text)' : probabilityShift < -0.1 ? 'var(--negative-text)' : 'var(--text-secondary)';
             let arrowSvg = '', momentumLabel = '';
             if (probabilityShift > 0.1) {
