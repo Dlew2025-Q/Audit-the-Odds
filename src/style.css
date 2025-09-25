@@ -1,12 +1,40 @@
-/* In a local development environment with a build step, you would use: */
-/* @tailwind base; */
-/* @tailwind components; */
-/* @tailwind utilities; */
-
-/* For this Render deployment, we rely on the Tailwind CDN script in public/index.html */
-/* This file can contain any custom CSS that isn't handled by Tailwind utilities. */
+/* For this environment, we rely on the Tailwind CDN script in public/index.html */
+/* In a real build process, you would use: @tailwind base; @tailwind components; @tailwind utilities; */
 
 body {
     font-family: 'Inter', sans-serif;
+}
+
+.utility-btn {
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.utility-btn:hover:not(:disabled) {
+    background-color: #eff6ff;
+    border-color: #2563eb;
+    color: #1e40af;
+}
+
+.utility-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+html.dark .utility-btn {
+    background-color: #1e293b;
+    border-color: #1e293b;
+    color: #64748b;
+}
+
+html.dark .utility-btn:hover:not(:disabled) {
+    background-color: #1e293b;
+    border-color: #3b82f6;
+    color: #93c5fd;
 }
 
