@@ -415,6 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
         evFilterToggle.checked = false;
         sortSelect.value = 'default';
         minOddsFilter.value = '';
+        homeTeamsOnlyToggle.checked = false;
+        fadeMomentumToggle.checked = false;
+        minMomentumFilter.value = '';
         betSlip = [];
         slipContext = { type: 'Custom Bet Slip', settings: '' };
         renderBetSlip();
@@ -518,16 +521,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortBy = sortSelect.value;
         const minAmericanOdds = parseInt(minOddsFilter.value, 10);
         const minDecimalOdds = !isNaN(minAmericanOdds) ? americanToDecimal(minAmericanOdds) : null;
+        const minMomentum = parseFloat(minMomentumFilter.value);
         let cardsToDisplay = [...gameCardElements];
+
         if (showPositiveOnly) cardsToDisplay = cardsToDisplay.filter(card => card.dataset.positiveEv === 'true');
+        
         if (minDecimalOdds) {
             cardsToDisplay = cardsToDisplay.filter(card => Array.from(card.querySelectorAll('.bet-option')).some(option => parseFloat(option.dataset.betOdds) >= minDecimalOdds));
         }
+
+        if (!isNaN(minMomentum) && minMomentum > 0) {
+            cardsToDisplay = cardsToDisplay.filter(card => {
+                const maxMomentum = parseFloat(card.dataset.maxMomentum) || 0;
+                return maxMomentum >= minMomentum;
+            });
+        }
+
         if (sortBy === 'highest-ev') {
             cardsToDisplay.sort((a, b) => parseFloat(b.dataset.maxEv) - parseFloat(a.dataset.maxEv));
         } else {
             cardsToDisplay.sort((a, b) => parseInt(a.dataset.gameIndex) - parseInt(b.dataset.gameIndex));
         }
+        
         gameListContainer.innerHTML = '';
         cardsToDisplay.forEach(card => gameListContainer.appendChild(card));
         buildMomentumParlayBtn.disabled = !ALL_SPORTS_DATA.some(game => game.historicalData);
@@ -973,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
     evFilterToggle.addEventListener('change', applyFiltersAndSorting);
     sortSelect.addEventListener('change', applyFiltersAndSorting);
     minOddsFilter.addEventListener('input', applyFiltersAndSorting);
+    minMomentumFilter.addEventListener('input', applyFiltersAndSorting);
     soccerMarketSelect.addEventListener('change', () => displayGames(ALL_SPORTS_DATA));
     
     if (copyBtn) copyBtn.addEventListener('click', () => { console.log("Copy +EV button clicked."); handleCopyClick(); });
