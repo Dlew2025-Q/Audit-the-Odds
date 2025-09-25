@@ -20,7 +20,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
                 </button>
                 <div class="text-center">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v11.4</span></h1>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Audit the Odds <span class="text-lg align-middle font-medium text-secondary">v11.5</span></h1>
                     <p class="text-lg text-secondary">Find value by analyzing live betting lines for today's games.</p>
                 </div>
             </div>
@@ -45,6 +45,12 @@
                     <div class="p-4 rounded-xl" style="background-color: var(--container-bg); border: 1px solid var(--border-color);">
                         <h3 class="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
                         <div id="bet-slip-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+                        <div id="bet-slip-summary" class="mt-4 pt-4 border-t border-[var(--border-color)] hidden">
+                            <div class="flex justify-between text-sm font-semibold">
+                                <span class="text-secondary">Total Wager:</span>
+                                <span id="total-wager-display">$0.00</span>
+                            </div>
+                        </div>
                         <div id="bet-slip-controls" class="mt-4 flex flex-col gap-2 hidden">
                             <button id="copy-slip-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center justify-center transition-colors" style="background-color: var(--accent-color); color: white;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -104,8 +110,8 @@
                             <input type="number" id="min-odds-filter" placeholder="-200" step="10" class="text-sm rounded-md p-1 w-20" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
                         </div>
                         <div class="flex items-center space-x-2">
-                            <label for="min-momentum-filter" class="text-sm font-medium">Min Momentum %:</label>
-                            <input type="number" id="min-momentum-filter" placeholder="2.0" step="0.1" class="text-sm rounded-md p-1 w-20" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
+                            <label for="min-momentum-filter" class="text-sm font-medium">Min Mom %:</label>
+                            <input type="number" id="min-momentum-filter" placeholder="1.0" step="0.1" class="text-sm rounded-md p-1 w-20" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
                         </div>
                         <div id="soccer-market-control" class="flex items-center space-x-2 hidden">
                             <label for="soccer-market-select" class="text-sm font-medium">Soccer Bet Type:</label>
@@ -114,14 +120,20 @@
                                 <option value="moneyline">Moneyline</option>
                             </select>
                         </div>
-                        <div class="flex items-center space-x-2">
+                        <div class="flex flex-col sm:flex-row items-center gap-2">
+                             <div class="flex items-center space-x-2">
+                                <label for="bankroll-input" class="text-sm font-medium">Bankroll $:</label>
+                                <input type="number" id="bankroll-input" placeholder="1000" step="10" class="text-sm rounded-md p-1 w-24" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
+                            </div>
+                             <button id="build-kelly-bets-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="background-color: #ca8a04; color: white;" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.158-.103.346-.196.567-.267v1.698a2.5 2.5 0 00-.567-.267C8.07 8.418 8 8.835 8 9.25v1.5a3.5 3.5 0 007 0v-1.5c0-.415-.07-.832-.433-1.118a5.002 5.002 0 01-2.5-4.132V1.5a1 1 0 00-2 0v2.5a5.002 5.002 0 01-2.5 4.132z" /></svg>
+                                <span>Build Kelly Bets</span>
+                            </button>
+                        </div>
+                         <div class="flex items-center space-x-2">
                             <button id="build-momentum-parlay-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="background-color: #16a34a; color: white;" disabled>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                                 <span>Build Momentum Parlay</span>
-                            </button>
-                            <button id="copy-btn" class="text-sm font-semibold py-2 px-4 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style="background-color: var(--accent-color); color: white;" disabled>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                <span id="copy-btn-text">Copy +EV Games</span>
                             </button>
                             <button id="new-analysis-btn" class="utility-btn text-sm py-2 px-4 rounded-lg flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M13.5 4.432a.75.75 0 01.068 1.056l-3.25 4.5a.75.75 0 01-1.139.009l-1.75-2.003a.75.75 0 111.122-1.004l1.18 1.348 2.72-3.778a.75.75 0 011.056-.068z" clip-rule="evenodd" /></svg>
@@ -154,6 +166,10 @@
                         <code class="text-sm font-mono" style="color: var(--text-primary);">EV = (Your Probability × (Decimal Odds - 1)) - (1 - Your Probability)</code>
                     </div>
                     <p>A <strong>Positive EV (+EV)</strong> indicates a bet that is mathematically profitable in the long run, based on your probability estimate.</p>
+                     <p><strong>5. Calculate Kelly Criterion Bet Size:</strong> When you enter a bankroll and click "Build Kelly Bets", the app calculates the optimal bet size for the highest +EV opportunity in each qualifying game. This is done to maximize long-term bankroll growth.</p>
+                     <div class="p-3 my-2 rounded-lg text-center" style="background-color: var(--input-bg);">
+                        <code class="text-sm font-mono" style="color: var(--text-primary);">Bet Size = Bankroll × (Edge / (Decimal Odds - 1))</code>
+                    </div>
                 </div>
             </div>
         </div>
