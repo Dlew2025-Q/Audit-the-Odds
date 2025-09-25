@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 // --- Helper Functions (Pure Logic) ---
-// All helper functions from utils.js are included here to meet the single-file mandate.
-
 const getNoVigProb = (odds1, odds2) => {
     if (!odds1 || !odds2) return 0.5;
     const implied1 = 1 / odds1;
@@ -74,7 +72,7 @@ const getGameSport = (game) => {
 const kellyCriterion = (winProb, odds) => (winProb * (odds - 1) - (1 - winProb)) / (odds - 1);
 
 // --- Child Components (nested) ---
-function Header({ onHelpClick, isNightMode, onToggleNightMode }) {
+function Header({ onHelpClick }) {
     return (
         <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 relative overflow-hidden">
              <style jsx>{`
@@ -98,7 +96,7 @@ function Header({ onHelpClick, isNightMode, onToggleNightMode }) {
                     z-index: 0;
                     opacity: 0.2;
                 }
-                .dark .matrix-bg {
+                html.dark .matrix-bg {
                     background-image: linear-gradient(
                         rgba(0, 255, 0, 0.1) 1px,
                         transparent 1px
@@ -109,8 +107,8 @@ function Header({ onHelpClick, isNightMode, onToggleNightMode }) {
                  <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
                 </button>
-                 <button onClick={onToggleNightMode} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isNightMode ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" : "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"} /></svg>
+                 <button className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hidden">
+                    {/* Night mode toggle removed */}
                 </button>
              </div>
             <div className="text-center relative z-10">
@@ -126,7 +124,7 @@ function Header({ onHelpClick, isNightMode, onToggleNightMode }) {
         </header>
     );
 }
-function GameCard({ game, addBet }) {
+function GameCard({ game, addBet, betTypeFilter }) {
     const [trueAwayProb, setTrueAwayProb] = useState(50);
     const [evAway, setEvAway] = useState(0);
     const [evHome, setEvHome] = useState(0);
@@ -200,16 +198,18 @@ function GameCard({ game, addBet }) {
                         </div>
                     </div>
                     {/* Moneyline Section */}
-                     <div className="flex items-center justify-between w-full space-x-2">
-                        <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
-                             <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                             <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-away`, gameId: game.id, team: awayTeamInfo.name, odds: game.moneyline_away, ev: evAway, betType: 'Moneyline', betLabel: `Moneyline: ${awayTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
+                    {(betTypeFilter === 'All' || betTypeFilter === 'Moneyline') && (
+                         <div className="flex items-center justify-between w-full space-x-2">
+                            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
+                                 <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
+                                 <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-away`, gameId: game.id, team: awayTeamInfo.name, odds: game.moneyline_away, ev: evAway, betType: 'Moneyline', betLabel: `Moneyline: ${awayTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
+                            </div>
+                            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
+                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
+                                <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-home`, gameId: game.id, team: homeTeamInfo.name, odds: game.moneyline_home, ev: evHome, betType: 'Moneyline', betLabel: `Moneyline: ${homeTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
+                            </div>
                         </div>
-                        <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
-                            <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                            <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-home`, gameId: game.id, team: homeTeamInfo.name, odds: game.moneyline_home, ev: evHome, betType: 'Moneyline', betLabel: `Moneyline: ${homeTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
-                        </div>
-                    </div>
+                    )}
                 </div>
                 <div className="flex flex-col space-y-4">
                     <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -232,10 +232,10 @@ function GameCard({ game, addBet }) {
                      <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
                 </div>
             </div>
-            {(spreadMarket || totalMarket) && (
+            {((betTypeFilter === 'All' && (spreadMarket || totalMarket)) || betTypeFilter === 'Spread' || betTypeFilter === 'Total') && (
                 <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
                      {/* Spreads Section */}
-                    {spreadMarket && (
+                    {(betTypeFilter === 'All' || betTypeFilter === 'Spread') && spreadMarket && (
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Spreads</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
@@ -258,7 +258,7 @@ function GameCard({ game, addBet }) {
                     )}
 
                     {/* Totals Section */}
-                    {totalMarket && (
+                    {(betTypeFilter === 'All' || betTypeFilter === 'Total') && totalMarket && (
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Totals</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
@@ -285,7 +285,7 @@ function GameCard({ game, addBet }) {
     );
 }
 
-function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, handleGenerateParlayClick }) {
+function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets }) {
      const handleFilterChange = useCallback((e) => {
         const { name, value, type, checked } = e.target;
         setFilters(prev => ({
@@ -329,7 +329,6 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, h
             <div className="flex justify-between items-center mt-4">
                 <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
                 <button onClick={handleBuildKellyBets} className="utility-btn text-sm">Build Kelly Bets</button>
-                <button onClick={handleGenerateParlayClick} className="utility-btn text-sm">Generate Parlay</button>
             </div>
         </div>
     );
@@ -392,41 +391,8 @@ function HelpModal({ onClose }) {
     );
 }
 
-function RoundRobinModal({ onClose }) {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold">Round Robin Builder</h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
-                    <p>This modal will contain the UI for building a round robin parlay from your bet slip. Functionality to be implemented.</p>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function StrategyParlayModal({ onClose }) {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold">Strategy Parlay Builder</h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
-                    <p>This modal will contain the UI for generating a parlay based on your pre-defined strategies. Functionality to be implemented.</p>
-                </div>
-            </div>
-        </div>
-    );
-}
+// RoundRobinModal removed
+// StrategyParlayModal removed
 
 // --- Main App Component ---
 
@@ -436,6 +402,7 @@ export default function App() {
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [allGames, setAllGames] = useState([]);
     const [betSlip, setBetSlip] = useState([]);
+    const [betTypeFilter, setBetTypeFilter] = useState('All');
     const [filters, setFilters] = useState({
         showPositiveEVOnly: false,
         sortBy: 'commence_time',
@@ -446,8 +413,6 @@ export default function App() {
         fadeMomentum: false,
     });
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [isRoundRobinModalOpen, setIsRoundRobinModalOpen] = useState(false);
-    const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isNightMode, setIsNightMode] = useState(false);
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
@@ -568,10 +533,7 @@ export default function App() {
         setBetSlip([]);
     }, []);
 
-    const toggleNightMode = useCallback(() => setIsNightMode(prev => !prev), []);
     const toggleHelpModal = useCallback(() => setIsHelpModalOpen(prev => !prev), []);
-    const toggleRoundRobinModal = useCallback(() => setIsRoundRobinModalOpen(prev => !prev), []);
-    const toggleStrategyModal = useCallback(() => setIsStrategyModalOpen(prev => !prev), []);
 
     const addBet = useCallback((bet) => {
         setBetSlip(prev => {
@@ -701,10 +663,6 @@ Filter Settings:
 
     }, [allGames, filters.bankroll]);
 
-    const handleGenerateParlayClick = useCallback(() => {
-        toggleStrategyModal();
-    }, [toggleStrategyModal]);
-
     const filteredGames = useMemo(() => {
         let filtered = allGames.map(game => {
             const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
@@ -759,7 +717,13 @@ Filter Settings:
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-            <Header onHelpClick={toggleHelpModal} isNightMode={isNightMode} onToggleNightMode={toggleNightMode} />
+             <style jsx>{`
+                html.dark {
+                    background-color: #0f172a;
+                    color: #e2e8f0;
+                }
+             `}</style>
+            <Header onHelpClick={toggleHelpModal} />
             <main className="mt-8">
                 {!isAnalyzed && !isLoading && (
                     <div className="text-center my-12">
@@ -784,10 +748,10 @@ Filter Settings:
                     <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
                          <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
                         <div className="lg:order-first lg:col-span-2">
-                            <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} handleGenerateParlayClick={handleGenerateParlayClick} />
+                            <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} setBetTypeFilter={setBetTypeFilter} betTypeFilter={betTypeFilter} />
                             <div className="grid grid-cols-1 gap-6">
                                 {filteredGames.map((game) => (
-                                    <GameCard key={game.id} game={game} addBet={addBet} />
+                                    <GameCard key={game.id} game={game} addBet={addBet} betTypeFilter={betTypeFilter} />
                                 ))}
                             </div>
                         </div>
@@ -795,8 +759,6 @@ Filter Settings:
                 )}
             </main>
             {isHelpModalOpen && <HelpModal onClose={toggleHelpModal} />}
-            {isRoundRobinModalOpen && <RoundRobinModal onClose={toggleRoundRobinModal} />}
-            {isStrategyModalOpen && <StrategyParlayModal onClose={toggleStrategyModal} />}
         </div>
     );
 }
