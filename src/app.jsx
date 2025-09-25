@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Header } from './Header';
+import { GameCard } from './GameCard';
+import { BetSlip } from './BetSlip';
+import { FilterControls } from './FilterControls';
+import { HelpModal } from './HelpModal';
 
 // --- Helper Functions (Pure Logic - Defined Globally in the Module) ---
-
+// These functions are duplicated here from utils.js, but kept for minimal change/context.
 const getNoVigProb = (odds1, odds2) => {
     if (!odds1 || !odds2) return 0.5;
     const implied1 = 1 / odds1;
@@ -29,13 +34,13 @@ const calculateEV = (winProb, decimalOdds) => (winProb * (decimalOdds - 1)) - (1
 
 const getMomentumAdjustedProbability = (currentGame, historicalGame) => {
     const currentAwayProb = getNoVigProb(currentGame.moneyline_away, currentGame.moneyline_home);
-    if (!historicalGame) return { prob: currentAwayProb, status: 'no_data' };
+    if (!historicalGame) return { prob: currentAwayProb, status: 'no_data', shift: 0 };
     const historicalBookmaker = historicalGame.bookmakers?.[0];
-    if (!historicalBookmaker) return { prob: currentAwayProb, status: 'no_data' };
+    if (!historicalBookmaker) return { prob: currentAwayProb, status: 'no_data', shift: 0 };
     const historicalMoneyline = historicalBookmaker.markets.find(m => m.key === 'h2h');
     const historicalAwayOutcome = historicalMoneyline?.outcomes.find(o => o.name === currentGame.away_team);
     const historicalHomeOutcome = historicalMoneyline?.outcomes.find(o => o.name === currentGame.home_team);
-    if (!historicalAwayOutcome || !historicalHomeOutcome) return { prob: currentAwayProb, status: 'no_data' };
+    if (!historicalAwayOutcome || !historicalHomeOutcome) return { prob: currentAwayProb, status: 'no_data', shift: 0 };
     const openingAwayProb = getNoVigProb(historicalAwayOutcome.price, historicalHomeOutcome.price);
     const probabilityShift = currentAwayProb - openingAwayProb;
     let adjustedProb = currentAwayProb + probabilityShift;
@@ -64,63 +69,6 @@ const getGameSport = (game) => {
     return 'Unknown';
 };
 
-// --- Child Components ---
-
-function Header() {
-    return (
-        <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-            <div className="text-center">
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
-                    Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.0 (React)</span>
-                </h1>
-                <p className="text-lg text-slate-600 dark:text-slate-400">
-                    Find value by analyzing live betting lines for today's games.
-                </p>
-            </div>
-        </header>
-    );
-}
-
-function GameCard({ game, index, handleBetClick, betSlip }) {
-    const [awayProb, setAwayProb] = useState(50);
-    
-    useEffect(() => {
-         const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-         setAwayProb(momentumResult.prob * 100);
-    }, [game]);
-
-    const awayTeamInfo = getTeamInfo(game.away_team);
-    const homeTeamInfo = getTeamInfo(game.home_team);
-
-    // Placeholder until full UI migration
-    return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
-            <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
-            <div className="grid md:grid-cols-2 gap-x-6 gap-y-8 items-start pt-4">
-                <div className="flex items-center justify-around text-center">
-                    <div className="flex flex-col items-center space-y-1 w-2/5">
-                        <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
-                        <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
-                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                    </div>
-                    <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
-                    <div className="flex flex-col items-center space-y-1 w-2/5">
-                         <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
-                        <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
-                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                    </div>
-                </div>
-                <div>
-                     <p className="text-center text-sm text-slate-500">Analysis controls and EV results will be fully migrated here.</p>
-                     <p className="text-center font-mono mt-2">{awayProb.toFixed(1)}%</p>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-
 // --- Main App Component ---
 
 export default function App() {
@@ -128,6 +76,7 @@ export default function App() {
     const [error, setError] = useState(null);
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [allGames, setAllGames] = useState([]);
+    const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
 
@@ -221,10 +170,14 @@ export default function App() {
         setIsAnalyzed(false);
         setAllGames([]);
     };
+
+    const toggleHelpModal = useCallback(() => {
+        setIsHelpModalOpen(prev => !prev);
+    }, []);
     
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-            <Header />
+            <Header onHelpClick={toggleHelpModal} />
             <main className="mt-8">
                 {!isAnalyzed && !isLoading && (
                     <div className="text-center my-12">
@@ -247,27 +200,19 @@ export default function App() {
                 )}
                 {isAnalyzed && !isLoading && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-                         <div className="lg:order-last lg:col-span-1">
-                             <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                 <h3 className="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
-                                  <p className="text-center text-sm text-slate-500 py-4">Functionality to be migrated.</p>
-                             </div>
-                         </div>
+                         <BetSlip />
                         <div className="lg:order-first lg:col-span-2">
-                            <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                <p className="text-center">Filters and Parlay Builders will be migrated here.</p>
-                                <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
-                            </div>
+                            <FilterControls resetApp={resetApp} />
                             <div className="grid grid-cols-1 gap-6">
-                                {allGames.map((game, index) => (
-                                    <GameCard key={game.id} game={game} index={index} />
+                                {allGames.map((game) => (
+                                    <GameCard key={game.id} game={game} />
                                 ))}
                             </div>
                         </div>
                     </div>
                 )}
             </main>
+            {isHelpModalOpen && <HelpModal onClose={toggleHelpModal} />}
         </div>
     );
 }
-
