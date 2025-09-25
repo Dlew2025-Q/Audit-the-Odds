@@ -659,7 +659,7 @@ Filter Settings:
                         maxEV = awaySpreadEV;
                         bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away})` };
                     }
-                    const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds); // Corrected typo here
+                    const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds); 
                     if (homeSpreadEV > maxEV) {
                         maxEV = homeSpreadEV;
                         bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home})` };
