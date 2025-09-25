@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryDashboard = document.getElementById('summary-dashboard');
     const minOddsFilter = document.getElementById('min-odds-filter');
     const homeTeamsOnlyToggle = document.getElementById('home-teams-only-toggle');
+    const fadeMomentumToggle = document.getElementById('fade-momentum-toggle');
     
     const betSlipArea = document.getElementById('bet-slip-area');
     const betSlipList = document.getElementById('bet-slip-list');
@@ -574,7 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("Bet slip is full. Maximum 20 bets allowed.");
                 return;
             }
-            betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds) });
+            const game = ALL_SPORTS_DATA[gameIndex];
+            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+            betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds), momentumShift: momentumResult.shift });
             target.style.borderColor = 'var(--accent-color)';
         } else {
             target.style.borderColor = 'transparent';
@@ -586,8 +589,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Build Momentum Parlay button clicked.");
         const minOddsValue = minOddsFilter.value || 'None';
         const homeOnly = homeTeamsOnlyToggle.checked;
+        const fadeMomentum = fadeMomentumToggle.checked;
         const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
-        slipContext = { type: 'Momentum Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}` };
+        const fadeSetting = fadeMomentum ? 'Fade' : 'Follow';
+
+        slipContext = { type: 'Momentum Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | Trend: ${fadeSetting}` };
         betSlip = [];
         gameCardElements.forEach(card => card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent'));
         const minDecimalOdds = !isNaN(parseInt(minOddsFilter.value, 10)) ? americanToDecimal(parseInt(minOddsFilter.value, 10)) : null;
@@ -598,9 +604,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (momentumResult.status === 'no_data') return;
             
             const probabilityShift = momentumResult.shift;
-            if (Math.abs(probabilityShift) < 0.001) return; // Ignore negligible momentum (0.1%)
+            if (Math.abs(probabilityShift) < 0.001) return; 
 
-            const momentumTeam = probabilityShift > 0 ? 'away' : 'home';
+            let momentumTeam = probabilityShift > 0 ? 'away' : 'home';
+            if(fadeMomentum) {
+                momentumTeam = momentumTeam === 'away' ? 'home' : 'away';
+            }
+            
             if (homeOnly && momentumTeam !== 'home') return;
 
             let pick = { gameIndex: index, momentum: Math.abs(probabilityShift), momentumShift: probabilityShift };
@@ -662,13 +672,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let betToAdd = null;
             const isSpreadSport = ['Football', 'Basketball'].includes(sport);
             const canUseSpread = game.spread_away_odds && game.spread_home_odds;
+            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+
             if (sport === 'Soccer') {
                 const soccerDefaultOdds = americanToDecimal(-111);
-                betToAdd = { odds: soccerDefaultOdds, label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (Spread)`, ev: calculateEV(0.5, soccerDefaultOdds), gameIndex: game.originalIndex };
+                betToAdd = { odds: soccerDefaultOdds, label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (Spread)`, ev: calculateEV(0.5, soccerDefaultOdds), gameIndex: game.originalIndex, momentumShift: momentumResult.shift };
             } else if (isSpreadSport && canUseSpread) {
-                 betToAdd = { odds: game[`spread_${finalPickTeam}_odds`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} ${game[`spread_${finalPickTeam}`] > 0 ? '+' : ''}${game[`spread_${finalPickTeam}`]}`, ev: calculateEV(0.5, game[`spread_${finalPickTeam}_odds`]), gameIndex: game.originalIndex };
+                 betToAdd = { odds: game[`spread_${finalPickTeam}_odds`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} ${game[`spread_${finalPickTeam}`] > 0 ? '+' : ''}${game[`spread_${finalPickTeam}`]}`, ev: calculateEV(0.5, game[`spread_${finalPickTeam}_odds`]), gameIndex: game.originalIndex, momentumShift: momentumResult.shift };
             } else {
-                 betToAdd = { odds: game[`moneyline_${finalPickTeam}`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (ML)`, ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]), gameIndex: game.originalIndex };
+                 betToAdd = { odds: game[`moneyline_${finalPickTeam}`], label: `${getTeamInfo(game[`${finalPickTeam}_team`]).name} (ML)`, ev: calculateEV(0.5, game[`moneyline_${finalPickTeam}`]), gameIndex: game.originalIndex, momentumShift: momentumResult.shift };
             }
             if (betToAdd && (!minDecimalOdds || betToAdd.odds >= minDecimalOdds)) {
                 generatedBets.push(betToAdd);
@@ -684,7 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!game.total_over_odds || !game.total_under_odds) return;
                 const overEV = calculateEV(0.5, game.total_over_odds);
                 const underEV = calculateEV(0.5, game.total_under_odds);
-                const pick = (overEV > underEV) ? { ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex } : { ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex };
+                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                const pick = (overEV > underEV) ? { ev: overEV, odds: game.total_over_odds, label: `Over ${game.total_over}`, gameIndex: game.originalIndex, momentumShift: momentumResult.shift } : { ev: underEV, odds: game.total_under_odds, label: `Under ${game.total_under}`, gameIndex: game.originalIndex, momentumShift: momentumResult.shift };
                 if (!minDecimalOdds || pick.odds >= minDecimalOdds) fillerPicks.push(pick);
             });
             fillerPicks.sort((a, b) => b.ev - a.ev);
@@ -719,17 +732,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleCopyStrategyParlay() {
         if (currentStrategyBets.length > 0) {
             const colors = { containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0' };
+            const timestamp = new Date().toLocaleString();
             let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
             htmlToCopy += `<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">${slipContext.type} (${currentStrategyBets.length} Picks)</h3>`;
-            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Settings: ${slipContext.settings}</p>`;
+            htmlToCopy += `<p style="font-size: 12px; color: ${colors.textSecondary}; margin-bottom: 12px; border-bottom: 1px solid ${colors.border}; padding-bottom: 8px;">${appVersion} | Generated: ${timestamp} | Settings: ${slipContext.settings}</p>`;
             currentStrategyBets.forEach(bet => {
                 const oddsText = decimalToAmerican(bet.odds);
                 let subtext = '';
+                let momentumText = '';
+                if (bet.momentumShift !== undefined) {
+                    const momentumShift = bet.momentumShift * 100;
+                    momentumText = ` | Mom: ${momentumShift > 0 ? '+' : ''}${momentumShift.toFixed(1)}%`;
+                }
                 if ((bet.label.toLowerCase().startsWith('over') || bet.label.toLowerCase().startsWith('under')) && bet.gameIndex !== undefined) {
                     const game = ALL_SPORTS_DATA[bet.gameIndex];
                     if (game) subtext = `<p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}</p>`;
                 }
-                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText})</span></p>${subtext}</div>`;
+                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText}${momentumText})</span></p>${subtext}</div>`;
             });
             htmlToCopy += `</div>`;
             copyHtmlToClipboard(htmlToCopy, copyStrategyParlayBtnText, 'Copy Parlay & Close');
