@@ -608,13 +608,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const minOddsValue = minOddsFilter.value || 'None';
         const homeOnly = homeTeamsOnlyToggle.checked;
         const fadeMomentum = fadeMomentumToggle.checked;
+        const minMomentumValue = minMomentumFilter.value || 'None';
         const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
         const fadeSetting = fadeMomentum ? 'Fade' : 'Follow';
 
-        slipContext = { type: 'Momentum Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | Trend: ${fadeSetting}` };
+        slipContext = { type: 'Momentum Parlay', settings: `Min Odds: ${minOddsValue} | Min Mom: ${minMomentumValue}% | Teams: ${homeOnlySetting} | Trend: ${fadeSetting}` };
         betSlip = [];
         gameCardElements.forEach(card => card.querySelectorAll('.bet-option').forEach(el => el.style.borderColor = 'transparent'));
         const minDecimalOdds = !isNaN(parseInt(minOddsFilter.value, 10)) ? americanToDecimal(parseInt(minOddsFilter.value, 10)) : null;
+        const minMomentum = parseFloat(minMomentumFilter.value);
         const potentialBets = [];
         ALL_SPORTS_DATA.forEach((game, index) => {
             const sport = getGameSport(game);
@@ -622,6 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (momentumResult.status === 'no_data') return;
             
             const probabilityShift = momentumResult.shift;
+            
+            if (!isNaN(minMomentum) && Math.abs(probabilityShift * 100) < minMomentum) {
+                return;
+            }
             if (Math.abs(probabilityShift) < 0.001) return; 
 
             let momentumTeam = probabilityShift > 0 ? 'away' : 'home';
@@ -662,13 +668,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const minOddsValue = minOddsFilter.value || 'None';
         const homeOnly = homeTeamsOnlyToggle.checked;
         const homeOnlySetting = homeOnly ? 'Home Only' : 'All';
+        const minMomentumValue = minMomentumFilter.value || 'None';
         const sportSettings = [];
         document.querySelectorAll('.sport-toggle-checkbox:checked').forEach(checkbox => {
             const sport = checkbox.dataset.sport;
             const strategy = document.getElementById(`strategy-${sport}`).value;
             sportSettings.push(`${sport}: ${strategy.charAt(0).toUpperCase() + strategy.slice(1)}`);
         });
-        slipContext = { type: 'Strategy Parlay', settings: `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting} | ${sportSettings.join(', ')}` };
+        slipContext = { type: 'Strategy Parlay', settings: `Min Odds: ${minOddsValue} | Min Mom: ${minMomentumValue}% | Teams: ${homeOnlySetting} | ${sportSettings.join(', ')}` };
         const strategies = {};
         document.querySelectorAll('.strategy-select').forEach(select => strategies[select.dataset.sport] = select.value);
         const selectedSports = new Set(Array.from(document.querySelectorAll('.sport-toggle-checkbox:checked')).map(cb => cb.dataset.sport));
@@ -1048,9 +1055,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (betSlip.length > 0) {
             const minOddsValue = minOddsFilter.value || 'None';
             const homeOnlySetting = homeTeamsOnlyToggle.checked ? 'Home Only' : 'All';
+            const minMomentumValue = minMomentumFilter.value || 'None';
             const timestamp = new Date().toLocaleString();
             if (slipContext.type === 'Custom Bet Slip') {
-                slipContext.settings = `Min Odds: ${minOddsValue} | Teams: ${homeOnlySetting}`;
+                slipContext.settings = `Min Odds: ${minOddsValue} | Min Mom: ${minMomentumValue}% | Teams: ${homeOnlySetting}`;
             }
             const colors = { containerBg: '#f1f5f9', accent: '#2563eb', textPrimary: '#0f172a', textSecondary: '#475569', border: '#e2e8f0' };
             let htmlToCopy = `<div style="font-family: Inter, sans-serif; color: ${colors.textPrimary};">`;
