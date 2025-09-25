@@ -75,8 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sort-select');
     const soccerMarketControl = document.getElementById('soccer-market-control');
     const soccerMarketSelect = document.getElementById('soccer-market-select');
-    const copyBtn = document.getElementById('copy-btn');
-    const copyBtnText = document.getElementById('copy-btn-text');
     const buildMomentumParlayBtn = document.getElementById('build-momentum-parlay-btn');
     const analyzeSection = document.getElementById('analyze-section');
     const analyzeTodayBtn = document.getElementById('analyze-today-btn');
@@ -94,9 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeTeamsOnlyToggle = document.getElementById('home-teams-only-toggle');
     const fadeMomentumToggle = document.getElementById('fade-momentum-toggle');
     const minMomentumFilter = document.getElementById('min-momentum-filter');
+    const bankrollInput = document.getElementById('bankroll-input');
+    const buildKellyBetsBtn = document.getElementById('build-kelly-bets-btn');
     
     const betSlipArea = document.getElementById('bet-slip-area');
     const betSlipList = document.getElementById('bet-slip-list');
+    const betSlipSummary = document.getElementById('bet-slip-summary');
+    const totalWagerDisplay = document.getElementById('total-wager-display');
     const betSlipControls = document.getElementById('bet-slip-controls');
     const emptySlipMessage = document.getElementById('empty-slip-message');
     const copySlipBtn = document.getElementById('copy-slip-btn');
@@ -421,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         homeTeamsOnlyToggle.checked = false;
         fadeMomentumToggle.checked = false;
         minMomentumFilter.value = '';
+        bankrollInput.value = '';
         betSlip = [];
         slipContext = { type: 'Custom Bet Slip', settings: '' };
         renderBetSlip();
@@ -549,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameListContainer.innerHTML = '';
         cardsToDisplay.forEach(card => gameListContainer.appendChild(card));
         buildMomentumParlayBtn.disabled = !ALL_SPORTS_DATA.some(game => game.historicalData);
-        copyBtn.disabled = !gameCardElements.some(card => card.dataset.positiveEv === 'true');
+        buildKellyBetsBtn.disabled = !gameCardElements.some(card => card.dataset.positiveEv === 'true');
         updateSummaryDashboard();
     }
 
@@ -559,16 +562,22 @@ document.addEventListener('DOMContentLoaded', () => {
         emptySlipMessage.classList.toggle('hidden', hasBets);
         betSlipControls.classList.toggle('hidden', !hasBets);
         betSlipList.innerHTML = '';
+        let totalWager = 0;
         betSlip.forEach(bet => {
+            if (bet.wager) totalWager += bet.wager;
             const betEl = document.createElement('div');
             betEl.className = 'p-2 text-xs rounded-lg flex items-center justify-between';
             betEl.style.backgroundColor = 'var(--accent-color-light)';
             const game = ALL_SPORTS_DATA[bet.gameIndex];
             const matchup = `${getTeamInfo(game.away_team).name} @ ${getTeamInfo(game.home_team).name}`;
             const oddsText = decimalToAmerican(bet.odds);
-            betEl.innerHTML = `<div class="flex-grow pr-2"><p class="font-bold truncate" style="color: var(--accent-text-dark);">${bet.label}</p><p class="text-secondary truncate">${matchup}</p></div><div class="flex-shrink-0 font-bold text-center w-12" style="color: var(--accent-text-dark);">${oddsText}</div><button data-bet-id="${bet.id}" class="remove-bet-btn p-1 ml-1 rounded-full hover:bg-red-200 dark:hover:bg-red-800 flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>`;
+            const wagerText = bet.wager ? `$${bet.wager.toFixed(2)}` : 'N/A';
+            betEl.innerHTML = `<div class="flex-grow pr-2"><p class="font-bold truncate" style="color: var(--accent-text-dark);">${bet.label}</p><p class="text-secondary truncate">${matchup}</p></div><div class="text-center flex-shrink-0 w-20"><p class="font-bold" style="color: var(--accent-text-dark);">${oddsText}</p><p class="font-semibold text-xs" style="color: var(--positive-text);">${wagerText}</p></div><button data-bet-id="${bet.id}" class="remove-bet-btn p-1 ml-1 rounded-full hover:bg-red-200 dark:hover:bg-red-800 flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>`;
             betSlipList.appendChild(betEl);
         });
+        
+        betSlipSummary.classList.toggle('hidden', totalWager <= 0);
+        totalWagerDisplay.textContent = `$${totalWager.toFixed(2)}`;
         comboAnalysisBtn.disabled = betSlip.length < 2;
     }
 
@@ -595,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const game = ALL_SPORTS_DATA[gameIndex];
             const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-            betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds), momentumShift: momentumResult.shift });
+            betSlip.push({ id: betId, gameIndex, label: betLabel, odds: parseFloat(betOdds), momentumShift: momentumResult.shift, wager: null });
             target.style.borderColor = 'var(--accent-color)';
         } else {
             target.style.borderColor = 'transparent';
@@ -653,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
         potentialBets.sort((a, b) => b.momentum - a.momentum);
         const topBets = potentialBets.slice(0, 20);
         topBets.forEach(bet => {
-            betSlip.push({ id: bet.id, gameIndex: bet.gameIndex, label: bet.label, odds: bet.odds, momentumShift: bet.momentumShift });
+            betSlip.push({ id: bet.id, gameIndex: bet.gameIndex, label: bet.label, odds: bet.odds, momentumShift: bet.momentumShift, wager: null });
             const card = document.getElementById(`game-${bet.gameIndex}`);
             if (card) {
                 const betEl = card.querySelector(`.bet-option[data-bet-label="${CSS.escape(bet.label)}"]`);
@@ -1010,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
     minMomentumFilter.addEventListener('input', applyFiltersAndSorting);
     soccerMarketSelect.addEventListener('change', () => displayGames(ALL_SPORTS_DATA));
     
-    if (copyBtn) copyBtn.addEventListener('click', () => { console.log("Copy +EV button clicked."); handleCopyClick(); });
+    if (buildKellyBetsBtn) buildKellyBetsBtn.addEventListener('click', handleBuildKellyBets);
     if (buildMomentumParlayBtn) buildMomentumParlayBtn.addEventListener('click', handleBuildMomentumParlay);
     if (generateParlayBtn) generateParlayBtn.addEventListener('click', handleGenerateParlayClick);
     if (analyzeTodayBtn) {
@@ -1083,7 +1092,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const momentumShift = bet.momentumShift * 100;
                     momentumText = ` | Mom: ${momentumShift > 0 ? '+' : ''}${momentumShift.toFixed(1)}%`;
                 }
-                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText}${momentumText})</span></p><p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p></div>`;
+                const wagerText = bet.wager ? ` | Wager: $${bet.wager.toFixed(2)}` : '';
+                htmlToCopy += `<div style="background-color: ${colors.containerBg}; border-radius: 8px; padding: 12px; font-size: 14px; margin-bottom: 8px; border: 1px solid ${colors.border};"><p style="font-weight: 600; margin: 0 0 4px 0; color: ${colors.textPrimary};">${bet.label} <span style="font-weight: 700; color: ${colors.accent};">(${oddsText}${momentumText}${wagerText})</span></p><p style="margin: 0; font-size: 12px; color: ${colors.textSecondary};">${matchup}</p></div>`;
             });
             htmlToCopy += `</div>`;
             copyHtmlToClipboard(htmlToCopy, copySlipBtnText, 'Copy Slip');
