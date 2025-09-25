@@ -68,13 +68,46 @@ const getGameSport = (game) => {
 const kellyCriterion = (winProb, odds) => (winProb * (odds - 1) - (1 - winProb)) / (odds - 1);
 
 // --- Child Components (nested) ---
-function Header({ onHelpClick }) {
+function Header({ onHelpClick, isNightMode, onToggleNightMode }) {
     return (
-        <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-             <button onClick={onHelpClick} className="absolute top-4 left-4 p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="text-center">
+        <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+             <style jsx>{`
+                @keyframes matrix-animation {
+                    from { transform: translateY(0); }
+                    to { transform: translateY(-100%); }
+                }
+                .matrix-bg {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 200%;
+                    background-image: linear-gradient(
+                        rgba(0, 255, 0, 0.1) 1px,
+                        transparent 1px
+                    );
+                    background-size: 100% 10px;
+                    animation: matrix-animation 10s linear infinite;
+                    z-index: 0;
+                    opacity: 0.2;
+                }
+                .dark .matrix-bg {
+                    background-image: linear-gradient(
+                        rgba(0, 255, 0, 0.1) 1px,
+                        transparent 1px
+                    );
+                }
+             `}</style>
+             <div className="flex justify-between items-center relative z-10">
+                 <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                </button>
+                 <button onClick={onToggleNightMode} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isNightMode ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" : "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"} /></svg>
+                </button>
+             </div>
+            <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
                     Audit the Odds
                     <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.1</span>
@@ -83,6 +116,7 @@ function Header({ onHelpClick }) {
                     Find value by analyzing live betting lines for today's games.
                 </p>
             </div>
+            <div className="matrix-bg"></div>
         </header>
     );
 }
@@ -336,8 +370,17 @@ export default function App() {
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [isRoundRobinModalOpen, setIsRoundRobinModalOpen] = useState(false);
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
+    const [isNightMode, setIsNightMode] = useState(false);
     
     const oddsApiKey = 'cc51a757d14174fd8061956b288df39e';
+
+    useEffect(() => {
+        if (isNightMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isNightMode]);
 
     const fetchAndAnalyzeGames = async () => {
         setIsLoading(true);
@@ -431,6 +474,7 @@ export default function App() {
         setBetSlip([]);
     }, []);
 
+    const toggleNightMode = useCallback(() => setIsNightMode(prev => !prev), []);
     const toggleHelpModal = useCallback(() => setIsHelpModalOpen(prev => !prev), []);
     const toggleRoundRobinModal = useCallback(() => setIsRoundRobinModalOpen(prev => !prev), []);
     const toggleStrategyModal = useCallback(() => setIsStrategyModalOpen(prev => !prev), []);
@@ -582,7 +626,7 @@ Filter Settings:
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-            <Header onHelpClick={toggleHelpModal} />
+            <Header onHelpClick={toggleHelpModal} isNightMode={isNightMode} onToggleNightMode={toggleNightMode} />
             <main className="mt-8">
                 {!isAnalyzed && !isLoading && (
                     <div className="text-center my-12">
