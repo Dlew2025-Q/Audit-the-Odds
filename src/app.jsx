@@ -12,6 +12,12 @@ const getNoVigProb = (odds1, odds2) => {
     return implied1 / totalImplied;
 };
 
+const getNoVigProbFromSymmetricalOdds = (odds) => {
+    const impliedProb = 1 / odds;
+    const noVigProb = impliedProb / (impliedProb * 2);
+    return noVigProb;
+};
+
 const decimalToAmerican = (decimalOdds) => {
     if (isNaN(decimalOdds) || decimalOdds <= 1) return 'N/A';
     if (decimalOdds >= 2.0) return `+${((decimalOdds - 1) * 100).toFixed(0)}`;
@@ -124,9 +130,34 @@ function GameCard({ game, addBet }) {
     const [trueAwayProb, setTrueAwayProb] = useState(50);
     const [evAway, setEvAway] = useState(0);
     const [evHome, setEvHome] = useState(0);
+
     const awayTeamInfo = getTeamInfo(game.away_team);
     const homeTeamInfo = getTeamInfo(game.home_team);
     const momentumResult = useMemo(() => getMomentumAdjustedProbability(game, game.historicalData), [game]);
+
+    const bookmaker = game.bookmakers?.[0];
+    const spreadMarket = bookmaker?.markets.find(m => m.key === 'spreads');
+    const totalMarket = bookmaker?.markets.find(m => m.key === 'totals');
+    const spreadAwayOutcome = spreadMarket?.outcomes.find(o => o.name === game.away_team);
+    const spreadHomeOutcome = spreadMarket?.outcomes.find(o => o.name === game.home_team);
+    const totalOverOutcome = totalMarket?.outcomes.find(o => o.name === 'Over');
+    const totalUnderOutcome = totalMarket?.outcomes.find(o => o.name === 'Under');
+    
+    const impliedProbSpread = useMemo(() => {
+        if (!spreadAwayOutcome || !spreadHomeOutcome) return { away: 0.5, home: 0.5 };
+        return {
+            away: getNoVigProb(spreadAwayOutcome.price, spreadHomeOutcome.price),
+            home: getNoVigProb(spreadHomeOutcome.price, spreadAwayOutcome.price)
+        };
+    }, [spreadAwayOutcome, spreadHomeOutcome]);
+
+    const impliedProbTotal = useMemo(() => {
+        if (!totalOverOutcome || !totalUnderOutcome) return { over: 0.5, under: 0.5 };
+        return {
+            over: getNoVigProb(totalOverOutcome.price, totalUnderOutcome.price),
+            under: getNoVigProb(totalUnderOutcome.price, totalOverOutcome.price)
+        };
+    }, [totalOverOutcome, totalUnderOutcome]);
 
     useEffect(() => {
         const initialProb = momentumResult.prob * 100;
@@ -143,16 +174,19 @@ function GameCard({ game, addBet }) {
         setEvHome(calculateEV(homeProb / 100, game.moneyline_home));
     };
 
-    const handleBetClick = (teamName, odds) => {
-        const betType = 'Moneyline';
-        const ev = teamName === game.away_team ? evAway : evHome;
+    const handleBetClick = (teamName, odds, betType, betLabel) => {
+        const ev = betType === 'Moneyline'
+            ? (teamName === game.away_team ? evAway : evHome)
+            : (betType === 'Spread' ? (teamName === game.away_team ? calculateEV(impliedProbSpread.away, odds) : calculateEV(impliedProbSpread.home, odds)) : (betLabel.includes('Over') ? calculateEV(impliedProbTotal.over, odds) : calculateEV(impliedProbTotal.under, odds)));
+
         const bet = {
-            id: `${game.id}-${teamName}`,
+            id: `${game.id}-${betLabel}`,
             gameId: game.id,
             team: teamName,
             odds: odds,
             ev: ev,
             betType: betType,
+            betLabel: betLabel,
             sport: getGameSport(game),
         };
         addBet(bet);
@@ -167,19 +201,28 @@ function GameCard({ game, addBet }) {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
             <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
             <div className="grid md:grid-cols-2 gap-x-6 gap-y-8 items-start pt-4">
-                <div className="flex items-center justify-around text-center">
-                    <div className="flex flex-col items-center space-y-1 w-2/5">
-                        <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
-                        <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
-                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                        <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away)} className="utility-btn text-sm">Add</button>
+                <div className="flex flex-col items-center justify-around text-center">
+                    <div className="flex w-full items-center justify-between text-center pb-4">
+                        <div className="flex flex-col items-center space-y-1 w-2/5">
+                            <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
+                            <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
+                        </div>
+                        <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
+                        <div className="flex flex-col items-center space-y-1 w-2/5">
+                            <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
+                            <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
+                        </div>
                     </div>
-                    <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
-                    <div className="flex flex-col items-center space-y-1 w-2/5">
-                         <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
-                        <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
-                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                        <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home)} className="utility-btn text-sm">Add</button>
+                    {/* Moneyline Section */}
+                     <div className="flex items-center justify-between w-full space-x-2">
+                        <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
+                             <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
+                             <button onClick={() => handleBetClick(awayTeamInfo.name, game.moneyline_away, 'Moneyline', 'Moneyline')} className="utility-btn text-sm mt-1">Add</button>
+                        </div>
+                        <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
+                            <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
+                            <button onClick={() => handleBetClick(homeTeamInfo.name, game.moneyline_home, 'Moneyline', 'Moneyline')} className="utility-btn text-sm mt-1">Add</button>
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -201,6 +244,49 @@ function GameCard({ game, addBet }) {
                         </div>
                     </div>
                      <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
+                </div>
+            </div>
+            <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
+                 {/* Spreads Section */}
+                <div className="flex flex-col items-center">
+                    <h4 className="font-bold text-sm mb-2">Spreads</h4>
+                    <div className="flex justify-between items-center w-full space-x-2">
+                        {spreadAwayOutcome && (
+                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
+                                <button onClick={() => handleBetClick(awayTeamInfo.name, spreadAwayOutcome.price, 'Spread', `Spread (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+                            </div>
+                        )}
+                        {spreadHomeOutcome && (
+                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
+                                <button onClick={() => handleBetClick(homeTeamInfo.name, spreadHomeOutcome.price, 'Spread', `Spread (${spreadHomeOutcome.point > 0 ? '+' : ''}${spreadHomeOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Totals Section */}
+                <div className="flex flex-col items-center">
+                    <h4 className="font-bold text-sm mb-2">Totals</h4>
+                    <div className="flex justify-between items-center w-full space-x-2">
+                        {totalOverOutcome && (
+                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
+                                <button onClick={() => handleBetClick(`${awayTeamInfo.name}/${homeTeamInfo.name}`, totalOverOutcome.price, 'Total', `Over (${totalOverOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+                            </div>
+                        )}
+                        {totalUnderOutcome && (
+                            <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
+                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
+                                <button onClick={() => handleBetClick(`${awayTeamInfo.name}/${homeTeamInfo.name}`, totalUnderOutcome.price, 'Total', `Under (${totalUnderOutcome.point})`)} className="utility-btn text-xs mt-1">Add</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -269,7 +355,7 @@ function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
                         {betSlip.map(bet => (
                              <li key={bet.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg dark:bg-slate-800">
                                  <div>
-                                     <p className="text-sm font-semibold">{bet.team}</p>
+                                     <p className="text-sm font-semibold">{bet.betLabel}</p>
                                      <p className="text-xs text-slate-500 dark:text-slate-400">
                                          Odds: {decimalToAmerican(bet.odds)} | EV: {bet.ev.toFixed(2)}%
                                          {bet.betSize && <span className="ml-2"> | Bet: ${bet.betSize.toFixed(2)}</span>}
@@ -441,8 +527,16 @@ export default function App() {
                 const bookmaker = game.bookmakers?.[0];
                 if(!bookmaker) return null;
                 const moneylineMarket = bookmaker.markets.find(m => m.key === 'h2h');
+                const spreadMarket = bookmaker.markets.find(m => m.key === 'spreads');
+                const totalMarket = bookmaker.markets.find(m => m.key === 'totals');
+
                 const awayML = moneylineMarket?.outcomes.find(o => o.name === game.away_team)?.price;
                 const homeML = moneylineMarket?.outcomes.find(o => o.name === game.home_team)?.price;
+
+                const spreadAwayOutcome = spreadMarket?.outcomes.find(o => o.name === game.away_team);
+                const spreadHomeOutcome = spreadMarket?.outcomes.find(o => o.name === game.home_team);
+                const totalOverOutcome = totalMarket?.outcomes.find(o => o.name === 'Over');
+                const totalUnderOutcome = totalMarket?.outcomes.find(o => o.name === 'Under');
                 
                 return { 
                     id: game.id,
@@ -452,7 +546,15 @@ export default function App() {
                     home_team: game.home_team,
                     away_team: game.away_team,
                     moneyline_away: awayML, 
-                    moneyline_home: homeML, 
+                    moneyline_home: homeML,
+                    spread_away: spreadAwayOutcome?.point || null,
+                    spread_away_odds: spreadAwayOutcome?.price || null,
+                    spread_home: spreadHomeOutcome?.point || null,
+                    spread_home_odds: spreadHomeOutcome?.price || null,
+                    total_over: totalOverOutcome?.point || null,
+                    total_over_odds: totalOverOutcome?.price || null,
+                    total_under: totalUnderOutcome?.point || null,
+                    total_under_odds: totalUnderOutcome?.price || null,
                     historicalData: historicalDataMap.get(game.id) 
                 };
             }).filter(g => g !== null);
@@ -500,7 +602,7 @@ export default function App() {
             const evDisplay = bet.ev >= 0 ? `+${bet.ev.toFixed(2)}%` : `${bet.ev.toFixed(2)}%`;
             const betSizeText = bet.betSize ? ` $${bet.betSize.toFixed(2)}` : 'N/A';
             const oddsText = decimalToAmerican(bet.odds);
-            return `> ${bet.team} (${bet.sport}) | Odds: ${oddsText} | EV: ${evDisplay} | Bet Size: ${betSizeText}`;
+            return `> ${bet.betLabel} | Odds: ${oddsText} | EV: ${evDisplay} | Bet Size: ${betSizeText}`;
         }).join('\n');
 
         const header = `📋 Audit the Odds Bet Slip
@@ -530,17 +632,55 @@ Filter Settings:
         const kellyBets = allGames
             .map(game => {
                 const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const awayEV = calculateEV(momentumResult.prob, game.moneyline_away);
-                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+                const impliedAwayProb = momentumResult.prob;
+                const impliedHomeProb = 1 - momentumResult.prob;
+                const impliedSpreadProb = getNoVigProbFromSymmetricalOdds(game.spread_away_odds);
+                const impliedTotalProb = getNoVigProbFromSymmetricalOdds(game.total_over_odds);
                 
                 let bestEVBet = null;
-                if (awayEV > homeEV && awayEV > 0) {
-                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: momentumResult.prob };
-                } else if (homeEV > awayEV && homeEV > 0) {
-                     bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: 1 - momentumResult.prob };
+                let maxEV = 0;
+
+                // Check moneyline bets
+                const awayEV = calculateEV(impliedAwayProb, game.moneyline_away);
+                const homeEV = calculateEV(impliedHomeProb, game.moneyline_home);
+                if (awayEV > maxEV) {
+                    maxEV = awayEV;
+                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: impliedAwayProb, betLabel: `Moneyline: ${game.away_team}` };
+                }
+                if (homeEV > maxEV) {
+                    maxEV = homeEV;
+                    bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: impliedHomeProb, betLabel: `Moneyline: ${game.home_team}` };
                 }
 
-                if (bestEVBet) {
+                // Check spread bets
+                if (game.spread_away_odds) {
+                    const awaySpreadEV = calculateEV(impliedSpreadProb, game.spread_away_odds);
+                    if (awaySpreadEV > maxEV) {
+                        maxEV = awaySpreadEV;
+                        bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away})` };
+                    }
+                    const homeSpreadEV = calculateEV(impliledSpreadProb, game.spread_home_odds);
+                    if (homeSpreadEV > maxEV) {
+                        maxEV = homeSpreadEV;
+                        bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home})` };
+                    }
+                }
+                
+                // Check total bets
+                if (game.total_over_odds) {
+                     const overEV = calculateEV(impliedTotalProb, game.total_over_odds);
+                     if (overEV > maxEV) {
+                         maxEV = overEV;
+                         bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_over_odds, ev: overEV, winProb: impliedTotalProb, betLabel: `Total: Over (${game.total_over})` };
+                     }
+                     const underEV = calculateEV(impliedTotalProb, game.total_under_odds);
+                     if (underEV > maxEV) {
+                         maxEV = underEV;
+                         bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_under_odds, ev: underEV, winProb: impliedTotalProb, betLabel: `Total: Under (${game.total_under})` };
+                     }
+                }
+
+                if (bestEVBet && bestEVBet.ev > 0) {
                     const kellyBetSize = kellyCriterion(bestEVBet.winProb, bestEVBet.odds) * filters.bankroll;
                     if (kellyBetSize > 0) {
                         return {
@@ -556,12 +696,13 @@ Filter Settings:
             .filter(bet => bet !== null);
 
         setBetSlip(kellyBets.map(bet => ({
-            id: `${bet.gameId}-${bet.team}`,
+            id: `${bet.gameId}-${bet.betLabel}`,
             gameId: bet.gameId,
             team: bet.team,
             odds: bet.odds,
             ev: bet.ev,
-            betType: 'Moneyline',
+            betType: bet.betType,
+            betLabel: bet.betLabel,
             sport: bet.sport,
             betSize: bet.betSize,
         })));
