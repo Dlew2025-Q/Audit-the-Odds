@@ -157,7 +157,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Momentum Swing
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.30</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.32</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -639,14 +639,21 @@ export default function App() {
             `Trend: ${filters.fadeMomentum ? 'Fade' : 'Standard'}`
         ].join(' | ');
 
-        const header = `${title}\nv13.5 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
+        const header = `${title}\nv13.32 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
 
         const betSlipText = betSlip.map(bet => {
             const game = allGames.find(g => g.id === bet.gameId);
             if (!game) return '';
+            
+            const awayMomentumShift = getMomentumAdjustedProbability(game, game.historicalData).shift;
+            let betMomentumValue = awayMomentumShift;
 
-            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-            const momentumText = `Mom: ${momentumResult.shift >= 0 ? '+' : ''}${(momentumResult.shift * 100).toFixed(1)}%`;
+            // If the bet is on the home team (and not a total), invert the momentum value.
+            if (!bet.betLabel.includes('Total:') && bet.betLabel.includes(game.home_team)) {
+                betMomentumValue = -awayMomentumShift;
+            }
+
+            const momentumText = `Mom: ${betMomentumValue >= 0 ? '+' : ''}${(betMomentumValue * 100).toFixed(1)}%`;
             
             const oddsText = decimalToAmerican(bet.odds);
             const evText = `EV: ${bet.ev >= 0 ? '+' : ''}${(bet.ev * 100).toFixed(1)}%`;
@@ -764,6 +771,12 @@ export default function App() {
     
     const handleBuildKellyBets = useCallback(() => {
         let kellyBets = gamesWithCalcs
+            .filter(game => { // Apply momentum filter here for Kelly bets
+                if (filters.minMomentum > 0) {
+                    return Math.abs(game.momentum * 100) >= filters.minMomentum;
+                }
+                return true;
+            })
             .map(game => {
                 let potentialBets = [];
 
@@ -925,4 +938,5 @@ export default function App() {
         </div>
     );
 }
+
 
