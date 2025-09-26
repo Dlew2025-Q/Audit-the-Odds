@@ -715,6 +715,8 @@ Filter Settings:
             <style jsx>{`
                 body {
                     font-family: 'Inter', sans-serif;
+                    background-color: #0d1117;
+                    color: #c9d1d9;
                 }
                 .utility-btn {
                     background-color: #f1f5f9;
@@ -764,6 +766,17 @@ Filter Settings:
                     z-index: 0;
                     opacity: 0.2;
                 }
+                .dark .bg-white\/70 { background-color: rgba(13, 17, 23, 0.7); }
+                .dark .text-slate-900 { color: #ffffff; }
+                .dark .text-slate-600 { color: #a8b3cf; }
+                .dark .bg-slate-50 { background-color: #0d1117; }
+                .dark .border-slate-200 { border-color: #30363d; }
+                .dark .bg-gray-50 { background-color: #161b22; }
+                .dark .bg-green-50 { background-color: rgba(34, 139, 34, 0.2); }
+                .dark .text-green-900 { color: #85e89d; }
+                .dark .bg-red-50 { background-color: rgba(255, 69, 0, 0.2); }
+                .dark .text-red-700 { color: #f85149; }
+                
              `}</style>
             <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
                 <Header onHelpClick={toggleHelpModal} />
@@ -790,7 +803,7 @@ Filter Settings:
                     {isAnalyzed && !isLoading && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
                              <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
-                            <div className="lg:order-first lg:col-span-2">
+                            <div className="lg:order-first lg-col-span-2">
                                 <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} setBetTypeFilter={setBetTypeFilter} betTypeFilter={betTypeFilter} />
                                 <div className="grid grid-cols-1 gap-6">
                                     {filteredGames.map((game) => (
