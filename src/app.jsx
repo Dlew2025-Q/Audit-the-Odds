@@ -111,7 +111,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.3</span>
+                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.4</span>
                 </h1>
                 <p className="text-lg text-slate-600 dark:text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -139,7 +139,7 @@ function GameCard({ game, addBet, betTypeFilter }) {
     const totalUnderOutcome = totalMarket?.outcomes.find(o => o.name === 'Under');
     
     const impliedProbSpread = useMemo(() => {
-        if (!spreadAwayOutcome || !spreadHomeOutcome) return { away: 0.5, home: 0.5 };
+        if (!spreadAwayOutcome?.price || !spreadHomeOutcome?.price) return { away: 0.5, home: 0.5 };
         return {
             away: getNoVigProb(spreadAwayOutcome.price, spreadHomeOutcome.price),
             home: getNoVigProb(spreadHomeOutcome.price, spreadAwayOutcome.price)
@@ -147,7 +147,7 @@ function GameCard({ game, addBet, betTypeFilter }) {
     }, [spreadAwayOutcome, spreadHomeOutcome]);
 
     const impliedProbTotal = useMemo(() => {
-        if (!totalOverOutcome || !totalUnderOutcome) return { over: 0.5, under: 0.5 };
+        if (!totalOverOutcome?.price || !totalUnderOutcome?.price) return { over: 0.5, under: 0.5 };
         return {
             over: getNoVigProb(totalOverOutcome.price, totalUnderOutcome.price),
             under: getNoVigProb(totalUnderOutcome.price, totalOverOutcome.price)
@@ -343,7 +343,7 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, s
 
 function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
     return (
-        <div className="lg:order-last lg:col-span-1">
+        <div className="lg:order-last lg-col-span-1">
              <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                  <h3 className="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
                  {betSlip.length === 0 ? (
