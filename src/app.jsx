@@ -11,10 +11,13 @@ const getNoVigProb = (odds1, odds2) => {
 };
 
 const getNoVigProbFromSymmetricalOdds = (odds) => {
+    if (!odds) return 0.5;
     const impliedProb = 1 / odds;
-    const noVigProb = impliedProb / (impliedProb * 2);
-    return noVigProb;
+    // This assumes symmetrical odds, so the total implied probability is impliedProb * 2
+    // The no-vig probability is one side's implied prob divided by the total.
+    return impliedProb / (impliedProb * 2);
 };
+
 
 const decimalToAmerican = (decimalOdds) => {
     if (isNaN(decimalOdds) || decimalOdds <= 1) return 'N/A';
@@ -30,7 +33,10 @@ const americanToDecimal = (americanOdds) => {
     return NaN;
 };
 
-const calculateEV = (winProb, decimalOdds) => (winProb * (decimalOdds - 1)) - (1 - winProb);
+const calculateEV = (winProb, decimalOdds) => {
+    if (!winProb || !decimalOdds) return -Infinity;
+    return (winProb * (decimalOdds - 1)) - (1 - winProb);
+}
 
 const getMomentumAdjustedProbability = (currentGame, historicalGame) => {
     const currentAwayProb = getNoVigProb(currentGame.moneyline_away, currentGame.moneyline_home);
@@ -74,7 +80,7 @@ const kellyCriterion = (winProb, odds) => (winProb * (odds - 1) - (1 - winProb))
 // --- Child Components (nested) ---
 function Header({ onHelpClick }) {
     return (
-        <header className="sticky top-4 z-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <header className="sticky top-4 z-10 bg-slate-900/70 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
              <style jsx>{`
                 @keyframes matrix-animation {
                     from { transform: translateY(0); }
@@ -96,24 +102,18 @@ function Header({ onHelpClick }) {
                     z-index: 0;
                     opacity: 0.2;
                 }
-                html.dark .matrix-bg {
-                    background-image: linear-gradient(
-                        rgba(0, 255, 0, 0.1) 1px,
-                        transparent 1px
-                    );
-                }
              `}</style>
              <div className="flex justify-end items-center relative z-10">
-                 <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-                </button>
+                 <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-800 border border-slate-700">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                 </button>
              </div>
             <div className="text-center relative z-10">
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.6</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.0</span>
                 </h1>
-                <p className="text-lg text-slate-600 dark:text-slate-400">
+                <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
                 </p>
             </div>
@@ -121,7 +121,7 @@ function Header({ onHelpClick }) {
         </header>
     );
 }
-function GameCard({ game, addBet, betTypeFilter }) {
+function GameCard({ game, addBet }) {
     const [trueAwayProb, setTrueAwayProb] = useState(50);
     const [evAway, setEvAway] = useState(0);
     const [evHome, setEvHome] = useState(0);
@@ -178,13 +178,70 @@ function GameCard({ game, addBet, betTypeFilter }) {
         return momentumResult.shift > 0 ? '⬆️' : '⬇️';
     };
 
-    const shouldShowMoneyline = betTypeFilter === 'All' || betTypeFilter === 'Moneyline';
-    const shouldShowSpread = betTypeFilter === 'All' || betTypeFilter === 'Spread';
-    const shouldShowTotal = betTypeFilter === 'All' || betTypeFilter === 'Total';
+    // JSX for Moneyline Display
+    const moneylineDisplay = (
+        <div className="flex items-center justify-between w-full space-x-2">
+            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border border-slate-700">
+                <span className="font-semibold text-lg text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
+                <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-away`, gameId: game.id, team: awayTeamInfo.name, odds: game.moneyline_away, ev: evAway, betType: 'Moneyline', betLabel: `Moneyline: ${awayTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
+            </div>
+            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border border-slate-700">
+                <span className="font-semibold text-lg text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
+                <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-home`, gameId: game.id, team: homeTeamInfo.name, odds: game.moneyline_home, ev: evHome, betType: 'Moneyline', betLabel: `Moneyline: ${homeTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
+            </div>
+        </div>
+    );
+
+    // JSX for Spread Display
+    const spreadDisplay = spreadMarket && (
+        <div className="flex flex-col items-center w-full">
+            <h4 className="font-bold text-sm mb-2">Spreads</h4>
+            <div className="flex justify-between items-center w-full space-x-2">
+                {spreadAwayOutcome?.price && (
+                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border border-slate-700">
+                        <span className="font-semibold text-lg text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
+                        <span className="text-xs text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
+                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-away`, gameId: game.id, team: awayTeamInfo.name, odds: spreadAwayOutcome.price, ev: calculateEV(impliedProbSpread.away, spreadAwayOutcome.price), betType: 'Spread', betLabel: `Spread: ${awayTeamInfo.name} (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                    </div>
+                )}
+                {spreadHomeOutcome?.price && (
+                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border border-slate-700">
+                        <span className="font-semibold text-lg text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
+                        <span className="text-xs text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
+                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-home`, gameId: game.id, team: homeTeamInfo.name, odds: spreadHomeOutcome.price, ev: calculateEV(impliedProbSpread.home, spreadHomeOutcome.price), betType: 'Spread', betLabel: `Spread: ${homeTeamInfo.name} (${spreadHomeOutcome.point > 0 ? '+' : ''}${spreadHomeOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    // JSX for Total Display
+    const totalDisplay = totalMarket && (
+        <div className="flex flex-col items-center w-full">
+            <h4 className="font-bold text-sm mb-2">Totals</h4>
+            <div className="flex justify-between items-center w-full space-x-2">
+                {totalOverOutcome?.price && (
+                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border border-slate-700">
+                        <span className="font-semibold text-lg text-blue-400">O {totalOverOutcome.point}</span>
+                        <span className="text-xs text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
+                        <button onClick={() => handleBetClick({ id: `${game.id}-total-over`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalOverOutcome.price, ev: calculateEV(impliedProbTotal.over, totalOverOutcome.price), betType: 'Total', betLabel: `Total: Over (${totalOverOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                    </div>
+                )}
+                {totalUnderOutcome?.price && (
+                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border border-slate-700">
+                        <span className="font-semibold text-lg text-blue-400">U {totalUnderOutcome.point}</span>
+                        <span className="text-xs text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
+                        <button onClick={() => handleBetClick({ id: `${game.id}-total-under`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalUnderOutcome.price, ev: calculateEV(impliedProbTotal.under, totalUnderOutcome.price), betType: 'Total', betLabel: `Total: Under (${totalUnderOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
-            <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
+        <div className="bg-slate-900 rounded-2xl shadow-lg border border-slate-800 p-6 relative overflow-hidden">
+            <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-slate-800 text-blue-300">{getGameSport(game)}</span></div>
             <div className="grid md:grid-cols-2 gap-x-6 gap-y-8 items-start pt-4">
                 <div className="flex flex-col items-center justify-around text-center">
                     <div className="flex w-full items-center justify-between text-center pb-4">
@@ -192,40 +249,29 @@ function GameCard({ game, addBet, betTypeFilter }) {
                             <img src={awayTeamInfo.logo} alt={awayTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
                             <span className="font-bold text-sm md:text-base leading-tight">{awayTeamInfo.name}</span>
                         </div>
-                        <div className="font-bold text-xl text-slate-400 dark:text-slate-500 pb-10">VS</div>
+                        <div className="font-bold text-xl text-slate-500 pb-10">VS</div>
                         <div className="flex flex-col items-center space-y-1 w-2/5">
                             <img src={homeTeamInfo.logo} alt={homeTeamInfo.name} className="h-16 w-16 md:h-20 md:w-20 object-contain mb-1" />
                             <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
                         </div>
                     </div>
-                    {/* Moneyline Section */}
-                    {shouldShowMoneyline && (
-                         <div className="flex items-center justify-between w-full space-x-2">
-                            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
-                                 <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
-                                 <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-away`, gameId: game.id, team: awayTeamInfo.name, odds: game.moneyline_away, ev: evAway, betType: 'Moneyline', betLabel: `Moneyline: ${awayTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
-                            </div>
-                            <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
-                                <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_home)}</span>
-                                <button onClick={() => handleBetClick({ id: `${game.id}-moneyline-home`, gameId: game.id, team: homeTeamInfo.name, odds: game.moneyline_home, ev: evHome, betType: 'Moneyline', betLabel: `Moneyline: ${homeTeamInfo.name}`, sport: getGameSport(game) })} className="utility-btn text-sm mt-1">Add</button>
-                            </div>
-                        </div>
-                    )}
+                    {/* Main Bet Display Area */}
+                    {moneylineDisplay}
                 </div>
                 <div className="flex flex-col space-y-4">
-                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-semibold">True Probability:</span>
-                            <span className="font-mono text-sm text-blue-600 dark:text-blue-400">{trueAwayProb.toFixed(1)}%</span>
+                            <span className="font-mono text-sm text-blue-400">{trueAwayProb.toFixed(1)}%</span>
                         </div>
-                        <input type="range" min="1" max="99" value={trueAwayProb} onChange={handleSliderChange} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-blue-700" />
+                        <input type="range" min="1" max="99" value={trueAwayProb} onChange={handleSliderChange} className="w-full h-2 bg-blue-700 rounded-lg appearance-none cursor-pointer" />
                     </div>
                     <div className="flex flex-col space-y-2 text-sm text-center">
-                        <div className="flex justify-between items-center bg-green-50 rounded-lg p-2 dark:bg-green-900/20 dark:text-green-400">
-                             <span className="font-semibold">{awayTeamInfo.name} EV:</span>
-                             <span className="font-mono">{evAway.toFixed(2)}%</span>
+                        <div className="flex justify-between items-center bg-green-900/20 text-green-400 rounded-lg p-2">
+                            <span className="font-semibold">{awayTeamInfo.name} EV:</span>
+                            <span className="font-mono">{evAway.toFixed(2)}%</span>
                         </div>
-                        <div className="flex justify-between items-center bg-red-50 rounded-lg p-2 dark:bg-red-900/20 dark:text-red-400">
+                        <div className="flex justify-between items-center bg-red-900/20 text-red-400 rounded-lg p-2">
                             <span className="font-semibold">{homeTeamInfo.name} EV:</span>
                             <span className="font-mono">{evHome.toFixed(2)}%</span>
                         </div>
@@ -233,61 +279,18 @@ function GameCard({ game, addBet, betTypeFilter }) {
                      <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
                 </div>
             </div>
-            {((shouldShowSpread && spreadMarket) || (shouldShowTotal && totalMarket)) && (
-                <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
-                     {/* Spreads Section */}
-                    {shouldShowSpread && spreadMarket && (
-                        <div className="flex flex-col items-center">
-                            <h4 className="font-bold text-sm mb-2">Spreads</h4>
-                            <div className="flex justify-between items-center w-full space-x-2">
-                                {spreadAwayOutcome?.price && (
-                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
-                                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-away`, gameId: game.id, team: awayTeamInfo.name, odds: spreadAwayOutcome.price, ev: calculateEV(impliedProbSpread.away, spreadAwayOutcome.price), betType: 'Spread', betLabel: `Spread: ${awayTeamInfo.name} (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
-                                    </div>
-                                )}
-                                {spreadHomeOutcome?.price && (
-                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
-                                        <button onClick={() => handleBetClick({ id: `${game.id}-spread-home`, gameId: game.id, team: homeTeamInfo.name, odds: spreadHomeOutcome.price, ev: calculateEV(impliedProbSpread.home, spreadHomeOutcome.price), betType: 'Spread', betLabel: `Spread: ${homeTeamInfo.name} (${spreadHomeOutcome.point > 0 ? '+' : ''}${spreadHomeOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Totals Section */}
-                    {shouldShowTotal && totalMarket && (
-                        <div className="flex flex-col items-center">
-                            <h4 className="font-bold text-sm mb-2">Totals</h4>
-                            <div className="flex justify-between items-center w-full space-x-2">
-                                {totalOverOutcome?.price && (
-                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
-                                        <button onClick={() => handleBetClick({ id: `${game.id}-total-over`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalOverOutcome.price, ev: calculateEV(impliedProbTotal.over, totalOverOutcome.price), betType: 'Total', betLabel: `Total: Over (${totalOverOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
-                                    </div>
-                                )}
-                                {totalUnderOutcome?.price && (
-                                    <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
-                                        <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
-                                        <button onClick={() => handleBetClick({ id: `${game.id}-total-under`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalUnderOutcome.price, ev: calculateEV(impliedProbTotal.under, totalUnderOutcome.price), betType: 'Total', betLabel: `Total: Under (${totalUnderOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+            {(spreadMarket || totalMarket) && (
+                <div className="mt-6 border-t border-slate-800 pt-6 grid grid-cols-2 gap-4">
+                    {spreadDisplay}
+                    {totalDisplay}
                 </div>
             )}
         </div>
     );
 }
 
-function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, setBetTypeFilter, betTypeFilter }) {
-     const handleFilterChange = useCallback((e) => {
+function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets }) {
+    const handleFilterChange = useCallback((e) => {
         const { name, value, type, checked } = e.target;
         setFilters(prev => ({
             ...prev,
@@ -296,7 +299,7 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, s
     }, [setFilters]);
     
     return (
-        <div className="mb-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div className="mb-4 p-4 rounded-xl bg-slate-900 border border-slate-800">
              <div className="grid grid-cols-2 gap-4">
                 <label className="flex items-center space-x-2">
                     <input type="checkbox" name="showPositiveEVOnly" checked={filters.showPositiveEVOnly} onChange={handleFilterChange} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
@@ -308,15 +311,15 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, s
                 </label>
                  <label className="flex flex-col space-y-1">
                     <span className="text-sm">Min Odds</span>
-                    <input type="text" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" placeholder="+100 or -110" />
+                    <input type="text" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" placeholder="+100 or -110" />
                 </label>
                  <label className="flex flex-col space-y-1">
                     <span className="text-sm">Min Momentum %</span>
-                    <input type="number" name="minMomentum" value={filters.minMomentum} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                    <input type="number" name="minMomentum" value={filters.minMomentum} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" />
                 </label>
                 <label className="flex flex-col space-y-1 col-span-2">
                     <span className="text-sm">Sort By</span>
-                    <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="form-select rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="form-select rounded-md text-sm bg-slate-800 border border-slate-700">
                         <option value="commence_time">Game Time</option>
                         <option value="ev">Expected Value</option>
                         <option value="momentum">Momentum</option>
@@ -324,14 +327,8 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, s
                 </label>
                 <label className="flex flex-col space-y-1 col-span-2">
                     <span className="text-sm">Bankroll</span>
-                    <input type="number" name="bankroll" value={filters.bankroll} onChange={handleFilterChange} className="form-input rounded-md text-sm dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                    <input type="number" name="bankroll" value={filters.bankroll} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" />
                 </label>
-            </div>
-            <div className="flex space-x-2 mt-4 text-sm font-semibold text-center">
-                <button onClick={() => setBetTypeFilter('All')} className={`utility-btn flex-1 ${betTypeFilter === 'All' ? 'bg-blue-600 text-white' : ''}`}>All</button>
-                <button onClick={() => setBetTypeFilter('Moneyline')} className={`utility-btn flex-1 ${betTypeFilter === 'Moneyline' ? 'bg-blue-600 text-white' : ''}`}>Moneyline</button>
-                <button onClick={() => setBetTypeFilter('Spread')} className={`utility-btn flex-1 ${betTypeFilter === 'Spread' ? 'bg-blue-600 text-white' : ''}`}>Spread</button>
-                <button onClick={() => setBetTypeFilter('Total')} className={`utility-btn flex-1 ${betTypeFilter === 'Total' ? 'bg-blue-600 text-white' : ''}`}>Total</button>
             </div>
             <div className="flex justify-between items-center mt-4">
                 <button onClick={resetApp} className="utility-btn text-sm">New Analysis</button>
@@ -344,17 +341,17 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets, s
 function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
     return (
         <div className="lg:order-last lg-col-span-1">
-             <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
                  <h3 className="text-lg font-semibold mb-3 text-center">My Bet Slip</h3>
                  {betSlip.length === 0 ? (
-                    <p className="text-center text-sm text-slate-500 py-4">Your bet slip is empty.</p>
+                     <p className="text-center text-sm text-slate-500 py-4">Your bet slip is empty.</p>
                  ) : (
-                    <ul className="space-y-3">
-                        {betSlip.map(bet => (
-                             <li key={bet.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg dark:bg-slate-800">
+                     <ul className="space-y-3">
+                         {betSlip.map(bet => (
+                             <li key={bet.id} className="flex justify-between items-center p-3 bg-slate-800 rounded-lg">
                                  <div>
                                      <p className="text-sm font-semibold">{bet.betLabel}</p>
-                                     <p className="text-xs text-slate-500 dark:text-slate-400">
+                                     <p className="text-xs text-slate-400">
                                          Odds: {decimalToAmerican(bet.odds)} | EV: {bet.ev.toFixed(2)}%
                                          {bet.betSize && <span className="ml-2"> | Bet: ${bet.betSize.toFixed(2)}</span>}
                                      </p>
@@ -363,32 +360,32 @@ function BetSlip({ betSlip, clearBetSlip, removeBet, copyBetSlip }) {
                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                  </button>
                              </li>
-                        ))}
-                    </ul>
+                         ))}
+                     </ul>
                  )}
                  {betSlip.length > 0 && (
-                    <div className="flex justify-between mt-4">
-                        <button onClick={clearBetSlip} className="utility-btn text-sm">Clear</button>
-                        <button onClick={copyBetSlip} className="utility-btn text-sm">Copy Slip</button>
-                    </div>
+                     <div className="flex justify-between mt-4">
+                         <button onClick={clearBetSlip} className="utility-btn text-sm">Clear</button>
+                         <button onClick={copyBetSlip} className="utility-btn text-sm">Copy Slip</button>
+                     </div>
                  )}
              </div>
-         </div>
+        </div>
     );
 }
 function HelpModal({ onClose }) {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div className="w-full max-w-2xl p-6 md:p-8 rounded-2xl shadow-2xl bg-slate-900 border border-slate-800">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-2xl font-bold">How It Works</h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-700">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-600 dark:text-slate-400 space-y-4">
+                <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-400 space-y-4">
                     <p><strong>1. Fetch Data:</strong> The app starts by fetching today's (or tomorrow's, if it's late) games and the latest odds from The Odds API.</p>
-                    <p><strong>2. Calculate Line Movement Momentum:</strong> For each game, the app makes a second API call to get the odds from **6 hours ago**. It compares these opening odds to the current odds to calculate the true line movement.</p>
+                    <p><strong>2. Calculate Line Movement Momentum:</strong> For each game, the app makes a second API call to get the odds from <strong>6 hours ago</strong>. It compares these opening odds to the current odds to calculate the true line movement.</p>
                     <p><strong>3. Adjust Probability:</strong> The initial probability for each team is adjusted based on this line movement. A line moving in a team's favor indicates positive market momentum. This is reflected in the initial position of the slider and the trend arrow (⬆️ or ⬇️).</p>
                     <p><strong>4. Calculate Expected Value (EV):</strong> As you adjust the "True Probability" slider, the app instantly calculates the Expected Value for every available bet.</p>
                     <p><strong>5. Calculate Kelly Criterion Bet Size:</strong> When you enter a bankroll and click "Build Kelly Bets", the app calculates the optimal bet size for the highest +EV opportunity in each qualifying game.</p>
@@ -406,7 +403,6 @@ export default function App() {
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [allGames, setAllGames] = useState([]);
     const [betSlip, setBetSlip] = useState([]);
-    const [betTypeFilter, setBetTypeFilter] = useState('All');
     const [filters, setFilters] = useState({
         showPositiveEVOnly: false,
         sortBy: 'commence_time',
@@ -659,29 +655,65 @@ Filter Settings:
     }, [allGames, filters.bankroll]);
 
     const filteredGames = useMemo(() => {
-        let filtered = allGames.map(game => {
+        // 1. Map over games to calculate all possible EVs first.
+        let gamesWithAllEVs = allGames.map(game => {
             const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-            const evAway = calculateEV(momentumResult.prob, game.moneyline_away);
-            const evHome = calculateEV(1 - momentumResult.prob, game.moneyline_home);
-            const bestEV = Math.max(evAway, evHome);
             const momentum = momentumResult.shift;
-            return { ...game, evAway, evHome, bestEV, momentum };
+    
+            // Moneyline EV
+            const evAwayML = calculateEV(momentumResult.prob, game.moneyline_away);
+            const evHomeML = calculateEV(1 - momentumResult.prob, game.moneyline_home);
+    
+            // Spread EV
+            const impliedProbSpread = getNoVigProb(game.spread_away_odds, game.spread_home_odds);
+            const evAwaySpread = game.spread_away_odds ? calculateEV(impliedProbSpread, game.spread_away_odds) : -Infinity;
+            const evHomeSpread = game.spread_home_odds ? calculateEV(1 - impliedProbSpread, game.spread_home_odds) : -Infinity;
+            
+            // Total EV
+            const impliedProbTotal = getNoVigProb(game.total_over_odds, game.total_under_odds);
+            const evOverTotal = game.total_over_odds ? calculateEV(impliedProbTotal, game.total_over_odds) : -Infinity;
+            const evUnderTotal = game.total_under_odds ? calculateEV(1 - impliedProbTotal, game.total_under_odds) : -Infinity;
+    
+            // Find the best EV across all types for sorting and general filtering
+            const bestEV = Math.max(evAwayML, evHomeML, evAwaySpread, evHomeSpread, evOverTotal, evUnderTotal);
+            
+            return { 
+                ...game, 
+                bestEV, 
+                momentum,
+                evs: {
+                    moneyline: { away: evAwayML, home: evHomeML },
+                    spread: { away: evAwaySpread, home: evHomeSpread },
+                    total: { over: evOverTotal, under: evUnderTotal }
+                }
+            };
         });
-
-        // Apply filters
+    
+        let filtered = gamesWithAllEVs;
+    
+        // Apply user-configurable filters
         if (filters.showPositiveEVOnly) {
             filtered = filtered.filter(game => game.bestEV > 0);
         }
+    
         if (filters.minOdds) {
             const minOddsDecimal = americanToDecimal(filters.minOdds);
             if (!isNaN(minOddsDecimal)) {
-                filtered = filtered.filter(game => game.moneyline_away >= minOddsDecimal || game.moneyline_home >= minOddsDecimal);
+                filtered = filtered.filter(game => {
+                    const check = (odds) => odds && odds >= minOddsDecimal;
+                    return check(game.moneyline_away) || check(game.moneyline_home) ||
+                           check(game.spread_away_odds) || check(game.spread_home_odds) ||
+                           check(game.total_over_odds) || check(game.total_under_odds);
+                });
             }
         }
+    
         if (filters.minMomentum > 0) {
             filtered = filtered.filter(game => Math.abs(game.momentum * 100) >= filters.minMomentum);
         }
+    
         if (filters.fadeMomentum) {
+             // This logic is moneyline-specific as it inverts the moneyline momentum probability
              filtered = filtered.filter(game => {
                 const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
                 const awayEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
@@ -689,11 +721,11 @@ Filter Settings:
                 return awayEV > 0 || homeEV > 0;
             });
         }
+        
         if (filters.homeTeamsOnly) {
+             // This is also a moneyline-specific filter based on its current implementation
              filtered = filtered.filter(game => {
-                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const homeEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
-                return homeEV > 0;
+                return game.evs.moneyline.home > 0;
             });
         }
         
@@ -711,79 +743,44 @@ Filter Settings:
     }, [allGames, filters]);
 
     return (
-        <div className="dark:bg-slate-950 dark:text-slate-100 min-h-screen">
-            <style jsx>{`
+        <div className="dark bg-slate-950 text-slate-100 min-h-screen">
+             <style jsx global>{`
                 body {
                     font-family: 'Inter', sans-serif;
-                    background-color: #0d1117;
-                    color: #c9d1d9;
+                    background-color: #020617; /* slate-950 */
                 }
+             `}</style>
+             <style jsx>{`
                 .utility-btn {
-                    background-color: #f1f5f9;
-                    border: 1px solid #e2e8f0;
-                    color: #475569;
+                    background-color: #1e293b; /* slate-800 */
+                    border: 1px solid #334155; /* slate-700 */
+                    color: #94a3b8; /* slate-400 */
                     padding: 0.5rem 1rem;
                     border-radius: 9999px;
                     font-weight: 500;
                     transition: all 0.2s;
                 }
                 .utility-btn:hover:not(:disabled) {
-                    background-color: #eff6ff;
-                    border-color: #2563eb;
-                    color: #1e40af;
+                    background-color: #334155; /* slate-700 */
+                    border-color: #3b82f6; /* blue-500 */
+                    color: #93c5fd; /* blue-300 */
                 }
                 .utility-btn:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
                 }
-                .dark .utility-btn {
-                    background-color: #1e293b;
-                    border-color: #1e293b;
-                    color: #64748b;
+                .utility-btn.bg-blue-600 {
+                    background-color: #2563eb;
+                    border-color: #2563eb;
+                    color: white;
                 }
-                .dark .utility-btn:hover:not(:disabled) {
-                    background-color: #1e293b;
-                    border-color: #3b82f6;
-                    color: #93c5fd;
-                }
-                @keyframes matrix-animation {
-                    from { transform: translateY(0); }
-                    to { transform: translateY(-100%); }
-                }
-                .matrix-bg {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 200%;
-                    background-image: linear-gradient(
-                        rgba(0, 255, 0, 0.1) 1px,
-                        transparent 1px
-                    );
-                    background-size: 100% 10px;
-                    animation: matrix-animation 10s linear infinite;
-                    z-index: 0;
-                    opacity: 0.2;
-                }
-                .dark .bg-white\/70 { background-color: rgba(13, 17, 23, 0.7); }
-                .dark .text-slate-900 { color: #ffffff; }
-                .dark .text-slate-600 { color: #a8b3cf; }
-                .dark .bg-slate-50 { background-color: #0d1117; }
-                .dark .border-slate-200 { border-color: #30363d; }
-                .dark .bg-gray-50 { background-color: #161b22; }
-                .dark .bg-green-50 { background-color: rgba(34, 139, 34, 0.2); }
-                .dark .text-green-900 { color: #85e89d; }
-                .dark .bg-red-50 { background-color: rgba(255, 69, 0, 0.2); }
-                .dark .text-red-700 { color: #f85149; }
-                
              `}</style>
             <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
                 <Header onHelpClick={toggleHelpModal} />
                 <main className="mt-8">
                     {!isAnalyzed && !isLoading && (
                         <div className="text-center my-12">
-                            <button onClick={fetchAndAnalyzeGames} className="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 dark:focus:ring-offset-slate-900">
+                            <button onClick={fetchAndAnalyzeGames} className="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-slate-900">
                                 Analyze Today's Games
                             </button>
                         </div>
@@ -791,11 +788,11 @@ Filter Settings:
                     {isLoading && (
                         <div className="text-center py-10">
                              <svg className="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <p id="processing-text" className="mt-4 text-slate-500 dark:text-slate-400">Fetching data...</p>
+                            <p id="processing-text" className="mt-4 text-slate-400">Fetching data...</p>
                         </div>
                     )}
                     {error && (
-                        <div className="text-center p-4 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                        <div className="text-center p-4 rounded-lg bg-red-900/20 text-red-400">
                             {error}
                             <button onClick={resetApp} className="utility-btn ml-4">Reset</button>
                         </div>
@@ -803,11 +800,11 @@ Filter Settings:
                     {isAnalyzed && !isLoading && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
                              <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
-                            <div className="lg:order-first lg-col-span-2">
-                                <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} setBetTypeFilter={setBetTypeFilter} betTypeFilter={betTypeFilter} />
+                            <div className="lg:order-first lg:col-span-2">
+                                <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} />
                                 <div className="grid grid-cols-1 gap-6">
                                     {filteredGames.map((game) => (
-                                        <GameCard key={game.id} game={game} addBet={addBet} betTypeFilter={betTypeFilter} />
+                                        <GameCard key={game.id} game={game} addBet={addBet} />
                                     ))}
                                 </div>
                             </div>
@@ -819,3 +816,4 @@ Filter Settings:
         </div>
     );
 }
+
