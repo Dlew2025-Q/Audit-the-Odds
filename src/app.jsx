@@ -236,14 +236,14 @@ function GameCard({ game, addBet, betTypeFilter }) {
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Spreads</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
-                                {spreadAwayOutcome && (
+                                {spreadAwayOutcome?.point !== null && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
                                         <button onClick={() => handleBetClick({ id: `${game.id}-spread-away`, gameId: game.id, team: awayTeamInfo.name, odds: spreadAwayOutcome.price, ev: calculateEV(impliedProbSpread.away, spreadAwayOutcome.price), betType: 'Spread', betLabel: `Spread: ${awayTeamInfo.name} (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
                                     </div>
                                 )}
-                                {spreadHomeOutcome && (
+                                {spreadHomeOutcome?.point !== null && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
@@ -259,14 +259,14 @@ function GameCard({ game, addBet, betTypeFilter }) {
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Totals</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
-                                {totalOverOutcome && (
+                                {totalOverOutcome?.point !== null && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
                                         <button onClick={() => handleBetClick({ id: `${game.id}-total-over`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalOverOutcome.price, ev: calculateEV(impliedProbTotal.over, totalOverOutcome.price), betType: 'Total', betLabel: `Total: Over (${totalOverOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
                                     </div>
                                 )}
-                                {totalUnderOutcome && (
+                                {totalUnderOutcome?.point !== null && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
@@ -707,49 +707,98 @@ Filter Settings:
     }, [allGames, filters]);
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-             <style jsx>{`
-                html.dark {
-                    background-color: #0f172a;
-                    color: #e2e8f0;
+        <div className="dark:bg-slate-950 dark:text-slate-100 min-h-screen">
+            <style jsx>{`
+                body {
+                    font-family: 'Inter', sans-serif;
+                }
+                .utility-btn {
+                    background-color: #f1f5f9;
+                    border: 1px solid #e2e8f0;
+                    color: #475569;
+                    padding: 0.5rem 1rem;
+                    border-radius: 9999px;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                }
+                .utility-btn:hover:not(:disabled) {
+                    background-color: #eff6ff;
+                    border-color: #2563eb;
+                    color: #1e40af;
+                }
+                .utility-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                .dark .utility-btn {
+                    background-color: #1e293b;
+                    border-color: #1e293b;
+                    color: #64748b;
+                }
+                .dark .utility-btn:hover:not(:disabled) {
+                    background-color: #1e293b;
+                    border-color: #3b82f6;
+                    color: #93c5fd;
+                }
+                @keyframes matrix-animation {
+                    from { transform: translateY(0); }
+                    to { transform: translateY(-100%); }
+                }
+                .matrix-bg {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 200%;
+                    background-image: linear-gradient(
+                        rgba(0, 255, 0, 0.1) 1px,
+                        transparent 1px
+                    );
+                    background-size: 100% 10px;
+                    animation: matrix-animation 10s linear infinite;
+                    z-index: 0;
+                    opacity: 0.2;
                 }
              `}</style>
-            <Header onHelpClick={toggleHelpModal} />
-            <main className="mt-8">
-                {!isAnalyzed && !isLoading && (
-                    <div className="text-center my-12">
-                        <button onClick={fetchAndAnalyzeGames} className="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 dark:focus:ring-offset-slate-900">
-                            Analyze Today's Games
-                        </button>
-                    </div>
-                )}
-                {isLoading && (
-                    <div className="text-center py-10">
-                         <svg className="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <p id="processing-text" className="mt-4 text-slate-500 dark:text-slate-400">Fetching data...</p>
-                    </div>
-                )}
-                {error && (
-                    <div className="text-center p-4 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                        {error}
-                        <button onClick={resetApp} className="utility-btn ml-4">Reset</button>
-                    </div>
-                )}
-                {isAnalyzed && !isLoading && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
-                         <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
-                        <div className="lg:order-first lg:col-span-2">
-                            <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} setBetTypeFilter={setBetTypeFilter} betTypeFilter={betTypeFilter} />
-                            <div className="grid grid-cols-1 gap-6">
-                                {filteredGames.map((game) => (
-                                    <GameCard key={game.id} game={game} addBet={addBet} betTypeFilter={betTypeFilter} />
-                                ))}
+            <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+                <Header onHelpClick={toggleHelpModal} />
+                <main className="mt-8">
+                    {!isAnalyzed && !isLoading && (
+                        <div className="text-center my-12">
+                            <button onClick={fetchAndAnalyzeGames} className="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 dark:focus:ring-offset-slate-900">
+                                Analyze Today's Games
+                            </button>
+                        </div>
+                    )}
+                    {isLoading && (
+                        <div className="text-center py-10">
+                             <svg className="animate-spin h-8 w-8 mx-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <p id="processing-text" className="mt-4 text-slate-500 dark:text-slate-400">Fetching data...</p>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="text-center p-4 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                            {error}
+                            <button onClick={resetApp} className="utility-btn ml-4">Reset</button>
+                        </div>
+                    )}
+                    {isAnalyzed && !isLoading && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
+                             <BetSlip betSlip={betSlip} clearBetSlip={clearBetSlip} removeBet={removeBet} copyBetSlip={copyBetSlip} />
+                            <div className="lg:order-first lg:col-span-2">
+                                <FilterControls filters={filters} setFilters={setFilters} resetApp={resetApp} handleBuildKellyBets={handleBuildKellyBets} setBetTypeFilter={setBetTypeFilter} betTypeFilter={betTypeFilter} />
+                                <div className="grid grid-cols-1 gap-6">
+                                    {filteredGames.map((game) => (
+                                        <GameCard key={game.id} game={game} addBet={addBet} betTypeFilter={betTypeFilter} />
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </main>
-            {isHelpModalOpen && <HelpModal onClose={toggleHelpModal} />}
+                    )}
+                </main>
+                {isHelpModalOpen && <HelpModal onClose={toggleHelpModal} />}
+            </div>
         </div>
     );
 }
