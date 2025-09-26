@@ -157,7 +157,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Momentum Swing
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.26</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.30</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -183,6 +183,14 @@ function GameCard({ game, addBet }) {
     const spreadHomeOutcome = spreadMarket?.outcomes.find(o => o.name === game.home_team);
     const totalOverOutcome = totalMarket?.outcomes.find(o => o.name === 'Over');
     const totalUnderOutcome = totalMarket?.outcomes.find(o => o.name === 'Under');
+    
+    const gameTime = new Date(game.commence_time).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short'
+    });
     
     const impliedProbSpread = useMemo(() => {
         if (!spreadAwayOutcome?.price || !spreadHomeOutcome?.price) return { away: 0.5, home: 0.5 };
@@ -220,35 +228,22 @@ function GameCard({ game, addBet }) {
     };
 
     const renderMomentumDisplay = () => {
-        if (momentumResult.status !== 'ok') {
+        if (momentumResult.status !== 'ok' || Math.abs(momentumResult.shift) < 0.001) {
             return (
-                <div className="text-slate-500 text-center text-sm p-2 rounded-lg bg-slate-800">
-                    Momentum: N/A
+                <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-slate-800 border border-slate-700">
+                    <span className="font-semibold">Momentum:</span>
+                    <span className="font-mono text-slate-500">None</span>
                 </div>
             );
         }
-
-        const awayMomentum = momentumResult.shift * 100;
-        const homeMomentum = -awayMomentum;
-
-        const formatMomentum = (momentum) => {
-            if (Math.abs(momentum) < 0.1) return <span className="font-mono text-slate-500">--</span>;
-            const sign = momentum > 0 ? '+' : '';
-            const color = momentum > 0 ? 'text-green-400' : 'text-red-400';
-            const arrow = momentum > 0 ? '⬆️' : '⬇️';
-            return <span className={`font-mono ${color}`}>{sign}{momentum.toFixed(1)}% {arrow}</span>;
-        };
-
+    
+        const momentumShift = Math.abs(momentumResult.shift * 100);
+        const favoredTeam = momentumResult.shift > 0 ? awayTeamInfo.name : homeTeamInfo.name;
+    
         return (
-            <div className="flex flex-col space-y-2 text-sm p-3 rounded-lg bg-slate-800 border border-slate-700">
-                <div className="flex justify-between items-center">
-                    <span className="font-semibold">{awayTeamInfo.name} Mom:</span>
-                    {formatMomentum(awayMomentum)}
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="font-semibold">{homeTeamInfo.name} Mom:</span>
-                    {formatMomentum(homeMomentum)}
-                </div>
+            <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-slate-800 border border-slate-700">
+                <span className="font-semibold">Momentum:</span>
+                <span className="font-mono text-blue-400">{favoredTeam} +{momentumShift.toFixed(1)}% ⬆️</span>
             </div>
         );
     };
@@ -330,6 +325,7 @@ function GameCard({ game, addBet }) {
                             <span className="font-bold text-sm md:text-base leading-tight">{homeTeamInfo.name}</span>
                         </div>
                     </div>
+                    <p className="text-center text-xs text-slate-500 -mt-4 mb-4">{gameTime}</p>
                     {/* Main Bet Display Area */}
                     {moneylineDisplay}
                 </div>
@@ -342,11 +338,11 @@ function GameCard({ game, addBet }) {
                         <input type="range" min="1" max="99" value={trueAwayProb} onChange={handleSliderChange} className="w-full h-2 bg-blue-700 rounded-lg appearance-none cursor-pointer" />
                     </div>
                     <div className="flex flex-col space-y-2 text-sm text-center">
-                        <div className="flex justify-between items-center bg-green-900/20 text-green-400 rounded-lg p-2">
+                        <div className="flex justify-between items-center bg-blue-900/20 text-blue-400 rounded-lg p-2">
                             <span className="font-semibold">{awayTeamInfo.name} EV:</span>
                             <span className="font-mono">{(evAway * 100).toFixed(2)}%</span>
                         </div>
-                        <div className="flex justify-between items-center bg-red-900/20 text-red-400 rounded-lg p-2">
+                        <div className="flex justify-between items-center bg-purple-900/20 text-purple-400 rounded-lg p-2">
                             <span className="font-semibold">{homeTeamInfo.name} EV:</span>
                             <span className="font-mono">{(evHome * 100).toFixed(2)}%</span>
                         </div>
@@ -654,6 +650,8 @@ export default function App() {
             
             const oddsText = decimalToAmerican(bet.odds);
             const evText = `EV: ${bet.ev >= 0 ? '+' : ''}${(bet.ev * 100).toFixed(1)}%`;
+            const betSizeText = bet.betSize ? ` | Bet: $${bet.betSize.toFixed(2)}` : '';
+
 
             let betName = bet.team; // Default to team name
 
@@ -671,7 +669,7 @@ export default function App() {
 
             const matchup = `${game.away_team} @ ${game.home_team}`;
 
-            return `${betName} (${oddsText} | ${evText} | ${momentumText})\n${matchup}`;
+            return `${betName} (${oddsText} | ${evText} | ${momentumText}${betSizeText})\n${matchup}`;
         }).join('\n\n');
 
         const textToCopy = `${header}\n\n${betSlipText}`;
@@ -685,31 +683,29 @@ export default function App() {
 
     }, [betSlip, allGames, filters]);
 
-    const filteredGames = useMemo(() => {
-        // 1. Map over games to calculate all possible EVs first.
-        let gamesWithAllEVs = allGames.map(game => {
+    const gamesWithCalcs = useMemo(() => {
+        return allGames.map(game => {
             const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
             const momentum = momentumResult.shift;
-    
-            // Moneyline EV
+            
+            // Moneyline
             const probAwayML = momentumResult.prob;
             const probHomeML = 1 - probAwayML;
             const evAwayML = calculateEV(probAwayML, game.moneyline_away);
             const evHomeML = calculateEV(probHomeML, game.moneyline_home);
 
-            // Spread EV
+            // Spread
             const probAwaySpread = getNoVigProb(game.spread_away_odds, game.spread_home_odds);
             const probHomeSpread = 1 - probAwaySpread;
             const evAwaySpread = calculateEV(probAwaySpread, game.spread_away_odds);
             const evHomeSpread = calculateEV(probHomeSpread, game.spread_home_odds);
             
-            // Total EV
+            // Total
             const probOverTotal = getNoVigProb(game.total_over_odds, game.total_under_odds);
             const probUnderTotal = 1 - probOverTotal;
             const evOverTotal = calculateEV(probOverTotal, game.total_over_odds);
             const evUnderTotal = calculateEV(probUnderTotal, game.total_under_odds);
     
-            // Find the best EV across all types for sorting and general filtering
             const bestEV = Math.max(evAwayML, evHomeML, evAwaySpread, evHomeSpread, evOverTotal, evUnderTotal);
             
             return { 
@@ -728,10 +724,12 @@ export default function App() {
                 }
             };
         });
+    }, [allGames]);
+
+    const filteredGames = useMemo(() => {
+        let filtered = gamesWithCalcs;
     
-        let filtered = gamesWithAllEVs;
-    
-        // Apply user-configurable filters FOR DISPLAY ONLY
+        // Apply display-only filters
         if (filters.showPositiveEVOnly) {
             filtered = filtered.filter(game => game.bestEV > 0);
         }
@@ -741,19 +739,15 @@ export default function App() {
         }
     
         if (filters.fadeMomentum) {
-            // Fading momentum means betting against the public money.
             filtered = filtered.filter(game => {
-                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const fadedAwayEV = calculateEV(1 - momentumResult.prob, game.moneyline_away);
-                const fadedHomeEV = calculateEV(momentumResult.prob, game.moneyline_home);
+                const fadedAwayEV = calculateEV(1 - game.probs.moneyline.away, game.moneyline_away);
+                const fadedHomeEV = calculateEV(game.probs.moneyline.away, game.moneyline_home);
                 return fadedAwayEV > 0 || fadedHomeEV > 0;
             });
         }
         
         if (filters.homeTeamsOnly) {
-             filtered = filtered.filter(game => {
-                return game.evs.moneyline.home > 0;
-            });
+             filtered = filtered.filter(game => game.evs.moneyline.home > 0);
         }
         
         // Apply sorting
@@ -762,45 +756,29 @@ export default function App() {
         } else if (filters.sortBy === 'momentum') {
              filtered.sort((a, b) => Math.abs(b.momentum) - Math.abs(a.momentum));
         } else {
-            // Default sort by commence_time
             filtered.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
         }
         
         return filtered;
-    }, [allGames, filters]);
+    }, [gamesWithCalcs, filters]);
     
     const handleBuildKellyBets = useCallback(() => {
-        const kellyBets = allGames // Start with all games to apply filters internally
+        let kellyBets = gamesWithCalcs
             .map(game => {
-                // Pre-calculate all EV and Prob data for the game
-                 const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                 const probAwayML = momentumResult.prob;
-                 const probHomeML = 1 - probAwayML;
-                 const evAwayML = calculateEV(probAwayML, game.moneyline_away);
-                 const evHomeML = calculateEV(probHomeML, game.moneyline_home);
-                 const probAwaySpread = getNoVigProb(game.spread_away_odds, game.spread_home_odds);
-                 const probHomeSpread = 1 - probAwaySpread;
-                 const evAwaySpread = calculateEV(probAwaySpread, game.spread_away_odds);
-                 const evHomeSpread = calculateEV(probHomeSpread, game.spread_home_odds);
-                 const probOverTotal = getNoVigProb(game.total_over_odds, game.total_under_odds);
-                 const probUnderTotal = 1 - probOverTotal;
-                 const evOverTotal = calculateEV(probOverTotal, game.total_over_odds);
-                 const evUnderTotal = calculateEV(probUnderTotal, game.total_under_odds);
-                
                 let potentialBets = [];
 
                 if (filters.fadeMomentum) {
-                    const fadedAwayEV = calculateEV(1 - probAwayML, game.moneyline_away);
-                    if (fadedAwayEV > 0) potentialBets.push({ team: game.away_team, odds: game.moneyline_away, ev: fadedAwayEV, winProb: 1 - probAwayML, betLabel: `Fade ML: ${game.away_team}` });
-                    const fadedHomeEV = calculateEV(probAwayML, game.moneyline_home);
-                    if (fadedHomeEV > 0) potentialBets.push({ team: game.home_team, odds: game.moneyline_home, ev: fadedHomeEV, winProb: probAwayML, betLabel: `Fade ML: ${game.home_team}` });
+                    const fadedAwayEV = calculateEV(1 - game.probs.moneyline.away, game.moneyline_away);
+                    if (fadedAwayEV > 0) potentialBets.push({ team: game.away_team, odds: game.moneyline_away, ev: fadedAwayEV, winProb: 1 - game.probs.moneyline.away, betLabel: `Fade ML: ${game.away_team}` });
+                    const fadedHomeEV = calculateEV(game.probs.moneyline.away, game.moneyline_home);
+                    if (fadedHomeEV > 0) potentialBets.push({ team: game.home_team, odds: game.moneyline_home, ev: fadedHomeEV, winProb: game.probs.moneyline.away, betLabel: `Fade ML: ${game.home_team}` });
                 } else {
-                    if (evAwayML > 0) potentialBets.push({ team: game.away_team, odds: game.moneyline_away, ev: evAwayML, winProb: probAwayML, betLabel: `Moneyline: ${game.away_team}` });
-                    if (evHomeML > 0) potentialBets.push({ team: game.home_team, odds: game.moneyline_home, ev: evHomeML, winProb: probHomeML, betLabel: `Moneyline: ${game.home_team}` });
-                    if (evAwaySpread > 0) potentialBets.push({ team: game.away_team, odds: game.spread_away_odds, ev: evAwaySpread, winProb: probAwaySpread, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` });
-                    if (evHomeSpread > 0) potentialBets.push({ team: game.home_team, odds: game.spread_home_odds, ev: evHomeSpread, winProb: probHomeSpread, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` });
-                    if (evOverTotal > 0) potentialBets.push({ team: `${game.away_team}/${game.home_team}`, odds: game.total_over_odds, ev: evOverTotal, winProb: probOverTotal, betLabel: `Total: Over (${game.total_over})` });
-                    if (evUnderTotal > 0) potentialBets.push({ team: `${game.away_team}/${game.home_team}`, odds: game.total_under_odds, ev: evUnderTotal, winProb: probUnderTotal, betLabel: `Total: Under (${game.total_under})` });
+                    if (game.evs.moneyline.away > 0) potentialBets.push({ team: game.away_team, odds: game.moneyline_away, ev: game.evs.moneyline.away, winProb: game.probs.moneyline.away, betLabel: `Moneyline: ${game.away_team}` });
+                    if (game.evs.moneyline.home > 0) potentialBets.push({ team: game.home_team, odds: game.moneyline_home, ev: game.evs.moneyline.home, winProb: game.probs.moneyline.home, betLabel: `Moneyline: ${game.home_team}` });
+                    if (game.evs.spread.away > 0) potentialBets.push({ team: game.away_team, odds: game.spread_away_odds, ev: game.evs.spread.away, winProb: game.probs.spread.away, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` });
+                    if (game.evs.spread.home > 0) potentialBets.push({ team: game.home_team, odds: game.spread_home_odds, ev: game.evs.spread.home, winProb: game.probs.spread.home, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` });
+                    if (game.evs.total.over > 0) potentialBets.push({ team: `${game.away_team}/${game.home_team}`, odds: game.total_over_odds, ev: game.evs.total.over, winProb: game.probs.total.over, betLabel: `Total: Over (${game.total_over})` });
+                    if (game.evs.total.under > 0) potentialBets.push({ team: `${game.away_team}/${game.home_team}`, odds: game.total_under_odds, ev: game.evs.total.under, winProb: game.probs.total.under, betLabel: `Total: Under (${game.total_under})` });
                 }
 
                 let validBets = potentialBets;
@@ -828,6 +806,13 @@ export default function App() {
                 return null;
             })
             .filter(bet => bet !== null);
+
+        const totalWager = kellyBets.reduce((sum, bet) => sum + bet.betSize, 0);
+
+        if (totalWager > filters.bankroll) {
+            const normalizationFactor = filters.bankroll / totalWager;
+            kellyBets = kellyBets.map(bet => ({ ...bet, betSize: bet.betSize * normalizationFactor }));
+        }
     
         setBetSlip(kellyBets.map(bet => ({
             id: `${bet.gameId}-${bet.betLabel}`,
@@ -841,7 +826,7 @@ export default function App() {
             betSize: bet.betSize,
         })));
     
-    }, [allGames, filters]);
+    }, [gamesWithCalcs, filters]);
 
     const supportedLeagues = [
         { name: 'NFL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png' },
