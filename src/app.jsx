@@ -111,7 +111,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.0</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.1</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -573,87 +573,6 @@ Filter Settings:
 
     }, [betSlip, filters.bankroll, filters.showPositiveEVOnly, filters.minMomentum, filters.minOdds]);
 
-    const handleBuildKellyBets = useCallback(() => {
-        const kellyBets = allGames
-            .map(game => {
-                const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const impliedAwayProb = momentumResult.prob;
-                const impliedHomeProb = 1 - momentumResult.prob;
-                const impliedSpreadProb = getNoVigProbFromSymmetricalOdds(game.spread_away_odds);
-                const impliedTotalProb = getNoVigProbFromSymmetricalOdds(game.total_over_odds);
-                
-                let bestEVBet = null;
-                let maxEV = 0;
-
-                // Check moneyline bets
-                const awayEV = calculateEV(impliedAwayProb, game.moneyline_away);
-                const homeEV = calculateEV(impliedHomeProb, game.moneyline_home);
-                if (awayEV > maxEV) {
-                    maxEV = awayEV;
-                    bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: awayEV, winProb: impliedAwayProb, betLabel: `Moneyline: ${game.away_team}` };
-                }
-                if (homeEV > maxEV) {
-                    maxEV = homeEV;
-                    bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: homeEV, winProb: impliedHomeProb, betLabel: `Moneyline: ${game.home_team}` };
-                }
-
-                // Check spread bets
-                if (game.spread_away_odds && game.spread_home_odds) {
-                    const awaySpreadEV = calculateEV(impliedSpreadProb, game.spread_away_odds);
-                    if (awaySpreadEV > maxEV) {
-                        maxEV = awaySpreadEV;
-                        bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: awaySpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` };
-                    }
-                    const homeSpreadEV = calculateEV(impliedSpreadProb, game.spread_home_odds);
-                    if (homeSpreadEV > maxEV) {
-                        maxEV = homeSpreadEV;
-                        bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: homeSpreadEV, winProb: impliedSpreadProb, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` };
-                    }
-                }
-                
-                // Check total bets
-                if (game.total_over_odds && game.total_under_odds) {
-                     const overEV = calculateEV(impliedTotalProb, game.total_over_odds);
-                     if (overEV > maxEV) {
-                         maxEV = overEV;
-                         bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_over_odds, ev: overEV, winProb: impliedTotalProb, betLabel: `Total: Over (${game.total_over})` };
-                     }
-                     const underEV = calculateEV(impliedTotalProb, game.total_under_odds);
-                     if (underEV > maxEV) {
-                         maxEV = underEV;
-                         bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_under_odds, ev: underEV, winProb: impliedTotalProb, betLabel: `Total: Under (${game.total_under})` };
-                     }
-                }
-
-                if (bestEVBet && bestEVBet.ev > 0) {
-                    const kellyBetSize = kellyCriterion(bestEVBet.winProb, bestEVBet.odds) * filters.bankroll;
-                    if (kellyBetSize > 0) {
-                        return {
-                            ...bestEVBet,
-                            betSize: kellyBetSize,
-                            gameId: game.id,
-                            sport: getGameSport(game)
-                        };
-                    }
-                }
-                return null;
-            })
-            .filter(bet => bet !== null);
-
-        setBetSlip(kellyBets.map(bet => ({
-            id: `${bet.gameId}-${bet.betLabel}`,
-            gameId: bet.gameId,
-            team: bet.team,
-            odds: bet.odds,
-            ev: bet.ev,
-            betType: bet.betType,
-            betLabel: bet.betLabel,
-            sport: bet.sport,
-            betSize: bet.betSize,
-        })));
-
-    }, [allGames, filters.bankroll]);
-
     const filteredGames = useMemo(() => {
         // 1. Map over games to calculate all possible EVs first.
         let gamesWithAllEVs = allGames.map(game => {
@@ -713,12 +632,15 @@ Filter Settings:
         }
     
         if (filters.fadeMomentum) {
-             // This logic is moneyline-specific as it inverts the moneyline momentum probability
-             filtered = filtered.filter(game => {
+            // Fading momentum means betting against the public money.
+            // We calculate the EV by using the probability of the favored team for the underdog.
+            filtered = filtered.filter(game => {
                 const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
-                const awayEV = calculateEV(1 - momentumResult.prob, game.moneyline_home);
-                const homeEV = calculateEV(momentumResult.prob, game.moneyline_away);
-                return awayEV > 0 || homeEV > 0;
+                // EV of betting the AWAY team, using the probability that was for the HOME team
+                const fadedAwayEV = calculateEV(1 - momentumResult.prob, game.moneyline_away);
+                // EV of betting the HOME team, using the probability that was for the AWAY team
+                const fadedHomeEV = calculateEV(momentumResult.prob, game.moneyline_home);
+                return fadedAwayEV > 0 || fadedHomeEV > 0;
             });
         }
         
@@ -741,7 +663,100 @@ Filter Settings:
         
         return filtered;
     }, [allGames, filters]);
+    
+    const handleBuildKellyBets = useCallback(() => {
+        const kellyBets = filteredGames
+            .map(game => {
+                let bestEVBet = null;
+                let maxEV = -Infinity;
+    
+                if (filters.fadeMomentum) {
+                    // If fading, we only look at moneyline bets with inverted probabilities
+                    const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+                    
+                    // "Faded" probability means we use the market's implied probability for the *other* team.
+                    const probAway_faded = 1 - momentumResult.prob;
+                    const probHome_faded = momentumResult.prob;
 
+                    const fadedAwayEV = calculateEV(probAway_faded, game.moneyline_away);
+                    const fadedHomeEV = calculateEV(probHome_faded, game.moneyline_home);
+    
+                    if (fadedAwayEV > maxEV) {
+                        maxEV = fadedAwayEV;
+                        bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: fadedAwayEV, winProb: probAway_faded, betLabel: `Fade ML: ${game.away_team}` };
+                    }
+                    if (fadedHomeEV > maxEV) {
+                        maxEV = fadedHomeEV;
+                        bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: fadedHomeEV, winProb: probHome_faded, betLabel: `Fade ML: ${game.home_team}` };
+                    }
+                } else {
+                    // Standard +EV logic across all bet types
+                    maxEV = 0; // For standard logic, we only want bets with EV > 0
+                    
+                    // Use pre-calculated EVs from the filteredGames memo
+                    if (game.evs.moneyline.away > maxEV) {
+                        maxEV = game.evs.moneyline.away;
+                        const winProb = getMomentumAdjustedProbability(game, game.historicalData).prob;
+                        bestEVBet = { team: game.away_team, odds: game.moneyline_away, ev: maxEV, winProb, betLabel: `Moneyline: ${game.away_team}` };
+                    }
+                    if (game.evs.moneyline.home > maxEV) {
+                        maxEV = game.evs.moneyline.home;
+                        const winProb = 1 - getMomentumAdjustedProbability(game, game.historicalData).prob;
+                        bestEVBet = { team: game.home_team, odds: game.moneyline_home, ev: maxEV, winProb, betLabel: `Moneyline: ${game.home_team}` };
+                    }
+    
+                    if (game.evs.spread.away > maxEV) {
+                        maxEV = game.evs.spread.away;
+                        const winProb = getNoVigProbFromSymmetricalOdds(game.spread_away_odds);
+                        bestEVBet = { team: game.away_team, odds: game.spread_away_odds, ev: maxEV, winProb, betLabel: `Spread: ${game.away_team} (${game.spread_away > 0 ? '+' : ''}${game.spread_away})` };
+                    }
+                    if (game.evs.spread.home > maxEV) {
+                        maxEV = game.evs.spread.home;
+                         const winProb = getNoVigProbFromSymmetricalOdds(game.spread_home_odds);
+                        bestEVBet = { team: game.home_team, odds: game.spread_home_odds, ev: maxEV, winProb, betLabel: `Spread: ${game.home_team} (${game.spread_home > 0 ? '+' : ''}${game.spread_home})` };
+                    }
+                    
+                    if (game.evs.total.over > maxEV) {
+                        maxEV = game.evs.total.over;
+                        const winProb = getNoVigProbFromSymmetricalOdds(game.total_over_odds);
+                        bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_over_odds, ev: maxEV, winProb, betLabel: `Total: Over (${game.total_over})` };
+                    }
+                    if (game.evs.total.under > maxEV) {
+                        maxEV = game.evs.total.under;
+                        const winProb = getNoVigProbFromSymmetricalOdds(game.total_under_odds);
+                        bestEVBet = { team: `${game.away_team}/${game.home_team}`, odds: game.total_under_odds, ev: maxEV, winProb, betLabel: `Total: Under (${game.total_under})` };
+                    }
+                }
+    
+                if (bestEVBet && bestEVBet.ev > 0) {
+                    const kellyBetSize = kellyCriterion(bestEVBet.winProb, bestEVBet.odds) * filters.bankroll;
+                    if (kellyBetSize > 0) {
+                        return {
+                            ...bestEVBet,
+                            betSize: kellyBetSize,
+                            gameId: game.id,
+                            sport: getGameSport(game)
+                        };
+                    }
+                }
+                return null;
+            })
+            .filter(bet => bet !== null);
+    
+        setBetSlip(kellyBets.map(bet => ({
+            id: `${bet.gameId}-${bet.betLabel}`,
+            gameId: bet.gameId,
+            team: bet.team,
+            odds: bet.odds,
+            ev: bet.ev,
+            betType: bet.betType,
+            betLabel: bet.betLabel,
+            sport: bet.sport,
+            betSize: bet.betSize,
+        })));
+    
+    }, [filteredGames, filters.bankroll, filters.fadeMomentum]);
+    
     return (
         <div className="dark bg-slate-950 text-slate-100 min-h-screen">
              <style jsx global>{`
@@ -816,4 +831,5 @@ Filter Settings:
         </div>
     );
 }
+
 
