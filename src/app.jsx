@@ -68,7 +68,7 @@ const getTeamInfo = (teamName) => {
     }
     return { name: teamName, logo: `https://placehold.co/96x96/e2e8f0/64748b?text=${teamName.substring(0,2)}`, id: null };
 };
-const SPORT_MAP = { 'NFL': 'Football', 'CFL': 'Football', 'NCAAF': 'Football', 'MLB': 'Baseball', 'NBA': 'Basketball', 'WNBA': 'Basketball', 'SOCCER': 'Soccer', 'NHL': 'Hockey', 'NCAAB': 'Basketball' };
+const SPORT_MAP = { 'NFL': 'Football', 'CFL': 'Football', 'NCAAF': 'Football', 'CFB': 'Football', 'MLB': 'Baseball', 'NBA': 'Basketball', 'WNBA': 'Basketball', 'SOCCER': 'Soccer', 'NHL': 'Hockey', 'NCAAB': 'Basketball' };
 const getGameSport = (game) => {
      if (game.sport_key && SPORT_MAP[game.sport_key.toUpperCase().split('_')[1]]) { return SPORT_MAP[game.sport_key.toUpperCase().split('_')[1]]; }
      if(game.sport_title && SPORT_MAP[game.sport_title]) return SPORT_MAP[game.sport_title];
@@ -102,7 +102,38 @@ function Header({ onHelpClick }) {
                     z-index: 0;
                     opacity: 0.2;
                 }
+                @keyframes swing {
+                    0% { transform: rotate(20deg); }
+                    50% { transform: rotate(-20deg); }
+                    100% { transform: rotate(20deg); }
+                }
+                .pendulum-container {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    overflow: hidden;
+                    pointer-events: none; 
+                }
+                .pendulum-svg {
+                    position: absolute;
+                    top: -10%; 
+                    left: 50%;
+                    width: 150px; 
+                    height: 150px;
+                    transform-origin: 50% 0; /* Swing from the top center */
+                    animation: swing 4s ease-in-out infinite;
+                    opacity: 0.25;
+                    margin-left: -75px;
+                }
              `}</style>
+             <div className="pendulum-container">
+                <svg className="pendulum-svg" viewBox="0 0 100 120">
+                    <line x1="50" y1="0" x2="50" y2="100" stroke="#FFD700" strokeWidth="2" />
+                    <circle cx="50" cy="110" r="10" fill="#FFD700" />
+                </svg>
+             </div>
              <div className="flex justify-end items-center relative z-10">
                  <button onClick={onHelpClick} className="p-2 rounded-full focus:outline-none bg-slate-800 border border-slate-700">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
@@ -110,8 +141,8 @@ function Header({ onHelpClick }) {
              </div>
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
-                    Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.3</span>
+                    Momentum Swing
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.13</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -409,7 +440,7 @@ export default function App() {
         sortBy: 'commence_time',
         minOdds: '', 
         minMomentum: 0,
-        bankroll: 100,
+        bankroll: 500,
         homeTeamsOnly: false,
         fadeMomentum: false,
     });
@@ -431,7 +462,7 @@ export default function App() {
             const sportsResponse = await fetch(sportsApiUrl);
             if (!sportsResponse.ok) throw new Error('Failed to fetch sports list. Your API key may be invalid.');
             const availableSports = await sportsResponse.json();
-            const desiredSportTitles = ['NFL', 'MLB', 'NBA', 'NHL', 'WNBA', 'CFL', 'NCAAF', 'NCAAB', 'Premier League'];
+            const desiredSportTitles = ['NFL', 'MLB', 'NBA', 'NHL', 'WNBA', 'CFL', 'NCAAF', 'CFB', 'NCAAB', 'Premier League'];
             const activeSports = availableSports.filter(sport => desiredSportTitles.includes(sport.title));
 
             if (activeSports.length === 0) throw new Error("No desired sports could be found in the API's list.");
@@ -544,7 +575,7 @@ export default function App() {
     const clearBetSlip = useCallback(() => setBetSlip([]), []);
 
     const copyBetSlip = useCallback(() => {
-        const title = `Audit the Odds Parlay (${betSlip.length} Picks)`;
+        const title = `Momentum Swing Parlay (${betSlip.length} Picks)`;
 
         const settings = [
             `Min Odds: ${filters.minOdds || 'None'}`,
@@ -553,7 +584,7 @@ export default function App() {
             `Trend: ${filters.fadeMomentum ? 'Fade' : 'Standard'}`
         ].join(' | ');
 
-        const header = `${title}\nv13.3 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
+        const header = `${title}\nv13.5 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
 
         const betSlipText = betSlip.map(bet => {
             const game = allGames.find(g => g.id === bet.gameId);
@@ -777,6 +808,17 @@ export default function App() {
         })));
     
     }, [filteredGames, filters.bankroll, filters.fadeMomentum]);
+
+    const supportedLeagues = [
+        { name: 'NFL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png' },
+        { name: 'NBA', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png' },
+        { name: 'MLB', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png' },
+        { name: 'NHL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png' },
+        { name: 'NCAAF', src: 'https://a.espncdn.com/i/teamlogos/ncaa/500/ncaa.png' },
+        { name: 'CFL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/cfl.png' },
+        { name: 'WNBA', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/wnba.png' },
+        { name: 'Premier League', src: 'https://a.espncdn.com/i/leaguelogos/soccer/500/23.png' }
+    ];
     
     return (
         <div className="dark bg-slate-950 text-slate-100 min-h-screen">
@@ -816,6 +858,20 @@ export default function App() {
                 <main className="mt-8">
                     {!isAnalyzed && !isLoading && (
                         <div className="text-center my-12">
+                            <div className="mb-12">
+                                <p className="text-sm uppercase font-semibold tracking-wider text-slate-500 mb-6">Supported Leagues</p>
+                                <div className="flex justify-center items-center flex-wrap gap-x-6 gap-y-4 md:gap-x-8">
+                                    {supportedLeagues.map(league => (
+                                        <img 
+                                            key={league.name} 
+                                            src={league.src} 
+                                            alt={league.name} 
+                                            className="h-10 md:h-12 object-contain transition-transform hover:scale-110"
+                                            title={league.name}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                             <button onClick={fetchAndAnalyzeGames} className="text-xl font-semibold py-4 px-10 rounded-xl transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-slate-900">
                                 Analyze Today's Games
                             </button>
@@ -852,4 +908,13 @@ export default function App() {
         </div>
     );
 }
+
+
+
+
+
+
+
+
+
 
