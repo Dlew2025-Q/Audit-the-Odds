@@ -111,7 +111,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.1</span>
+                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.2</span>
                 </h1>
                 <p className="text-lg text-slate-600 dark:text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -178,6 +178,10 @@ function GameCard({ game, addBet, betTypeFilter }) {
         return momentumResult.shift > 0 ? '⬆️' : '⬇️';
     };
 
+    const shouldShowMoneyline = betTypeFilter === 'All' || betTypeFilter === 'Moneyline';
+    const shouldShowSpread = betTypeFilter === 'All' || betTypeFilter === 'Spread';
+    const shouldShowTotal = betTypeFilter === 'All' || betTypeFilter === 'Total';
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800 p-6 relative overflow-hidden">
             <div className="relative"><span className="absolute -top-10 -left-10 text-xs font-bold uppercase px-3 py-1 rounded-br-lg rounded-tl-xl bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-blue-300">{getGameSport(game)}</span></div>
@@ -195,7 +199,7 @@ function GameCard({ game, addBet, betTypeFilter }) {
                         </div>
                     </div>
                     {/* Moneyline Section */}
-                    {(betTypeFilter === 'All' || betTypeFilter === 'Moneyline') && (
+                    {shouldShowMoneyline && (
                          <div className="flex items-center justify-between w-full space-x-2">
                             <div className="w-1/2 flex flex-col items-center p-2 rounded-lg border dark:border-slate-700">
                                  <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{decimalToAmerican(game.moneyline_away)}</span>
@@ -229,21 +233,21 @@ function GameCard({ game, addBet, betTypeFilter }) {
                      <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
                 </div>
             </div>
-            {((betTypeFilter === 'All' && (spreadMarket || totalMarket)) || betTypeFilter === 'Spread' || betTypeFilter === 'Total') && (
+            {((shouldShowSpread && spreadMarket) || (shouldShowTotal && totalMarket)) && (
                 <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 grid grid-cols-2 gap-4">
                      {/* Spreads Section */}
-                    {(betTypeFilter === 'All' || betTypeFilter === 'Spread') && spreadMarket && (
+                    {shouldShowSpread && spreadMarket && (
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Spreads</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
-                                {spreadAwayOutcome?.point !== null && (
+                                {spreadAwayOutcome?.price && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadAwayOutcome.point > 0 ? `+${spreadAwayOutcome.point}` : spreadAwayOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadAwayOutcome.price)}</span>
                                         <button onClick={() => handleBetClick({ id: `${game.id}-spread-away`, gameId: game.id, team: awayTeamInfo.name, odds: spreadAwayOutcome.price, ev: calculateEV(impliedProbSpread.away, spreadAwayOutcome.price), betType: 'Spread', betLabel: `Spread: ${awayTeamInfo.name} (${spreadAwayOutcome.point > 0 ? '+' : ''}${spreadAwayOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
                                     </div>
                                 )}
-                                {spreadHomeOutcome?.point !== null && (
+                                {spreadHomeOutcome?.price && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">{spreadHomeOutcome.point > 0 ? `+${spreadHomeOutcome.point}` : spreadHomeOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(spreadHomeOutcome.price)}</span>
@@ -255,18 +259,18 @@ function GameCard({ game, addBet, betTypeFilter }) {
                     )}
 
                     {/* Totals Section */}
-                    {(betTypeFilter === 'All' || betTypeFilter === 'Total') && totalMarket && (
+                    {shouldShowTotal && totalMarket && (
                         <div className="flex flex-col items-center">
                             <h4 className="font-bold text-sm mb-2">Totals</h4>
                             <div className="flex justify-between items-center w-full space-x-2">
-                                {totalOverOutcome?.point !== null && (
+                                {totalOverOutcome?.price && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">O {totalOverOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalOverOutcome.price)}</span>
                                         <button onClick={() => handleBetClick({ id: `${game.id}-total-over`, gameId: game.id, team: `${awayTeamInfo.name}/${homeTeamInfo.name}`, odds: totalOverOutcome.price, ev: calculateEV(impliedProbTotal.over, totalOverOutcome.price), betType: 'Total', betLabel: `Total: Over (${totalOverOutcome.point})`, sport: getGameSport(game) })} className="utility-btn text-xs mt-1">Add</button>
                                     </div>
                                 )}
-                                {totalUnderOutcome?.point !== null && (
+                                {totalUnderOutcome?.price && (
                                     <div className="flex flex-col items-center w-1/2 p-2 rounded-lg border dark:border-slate-700">
                                         <span className="font-semibold text-lg text-blue-600 dark:text-blue-400">U {totalUnderOutcome.point}</span>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">{decimalToAmerican(totalUnderOutcome.price)}</span>
@@ -561,8 +565,6 @@ Filter Settings:
 --
 `;
         const footer = `\n--\nFind your edge at audittheodds.com`;
-        
-        const textToCopy = header + betSlipText + footer;
         
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
