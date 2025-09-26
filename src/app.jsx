@@ -111,7 +111,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.1</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.3</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -384,11 +384,12 @@ function HelpModal({ onClose }) {
                     </button>
                 </div>
                 <div className="max-h-[80vh] overflow-y-auto pr-4 text-slate-400 space-y-4">
-                    <p><strong>1. Fetch Data:</strong> The app starts by fetching today's (or tomorrow's, if it's late) games and the latest odds from The Odds API.</p>
-                    <p><strong>2. Calculate Line Movement Momentum:</strong> For each game, the app makes a second API call to get the odds from <strong>6 hours ago</strong>. It compares these opening odds to the current odds to calculate the true line movement.</p>
-                    <p><strong>3. Adjust Probability:</strong> The initial probability for each team is adjusted based on this line movement. A line moving in a team's favor indicates positive market momentum. This is reflected in the initial position of the slider and the trend arrow (⬆️ or ⬇️).</p>
-                    <p><strong>4. Calculate Expected Value (EV):</strong> As you adjust the "True Probability" slider, the app instantly calculates the Expected Value for every available bet.</p>
-                    <p><strong>5. Calculate Kelly Criterion Bet Size:</strong> When you enter a bankroll and click "Build Kelly Bets", the app calculates the optimal bet size for the highest +EV opportunity in each qualifying game.</p>
+                    <p><strong>1. Fetch Data:</strong> The app fetches today's games and live odds from The Odds API.</p>
+                    <p><strong>2. Calculate Line Movement:</strong> It compares the current odds to the odds from <strong>6 hours ago</strong> to determine the "momentum" or how the market is moving.</p>
+                    <p><strong>3. Model True Probability:</strong> A predictive model uses this momentum to estimate the "true" probability of a moneyline outcome. This is the starting point for the EV calculations and the initial position of the slider on each game card.</p>
+                    <p><strong>4. Calculate Expected Value (EV):</strong> The app calculates the EV for all available bets (Moneyline, Spreads, Totals) based on their respective no-vig implied probabilities. The interactive slider on each card allows you to manually adjust the moneyline probability and see how the EV changes in real-time for that specific bet.</p>
+                    <p><strong>5. Build Kelly Bets:</strong> When you click "Build Kelly Bets," the app identifies the single most profitable (+EV) opportunity in each game across all bet types. It then calculates the optimal bet size for each of these picks using the Kelly Criterion, based on your specified bankroll.</p>
+                    <p><strong>6. Fade Momentum:</strong> The "Fade Momentum" filter reverses this logic. It identifies opportunities where betting <em>against</em> the public momentum has a positive EV and builds a Kelly bet slip based on those contrarian picks.</p>
                 </div>
             </div>
         </div>
@@ -543,26 +544,46 @@ export default function App() {
     const clearBetSlip = useCallback(() => setBetSlip([]), []);
 
     const copyBetSlip = useCallback(() => {
-        const betSlipText = betSlip.map(bet => {
-            const evDisplay = bet.ev >= 0 ? `+${bet.ev.toFixed(2)}%` : `${bet.ev.toFixed(2)}%`;
-            const betSizeText = bet.betSize ? ` $${bet.betSize.toFixed(2)}` : 'N/A';
-            const oddsText = decimalToAmerican(bet.odds);
-            return `> ${bet.betLabel} | Odds: ${oddsText} | EV: ${evDisplay} | Bet Size: ${betSizeText}`;
-        }).join('\n');
+        const title = `Audit the Odds Parlay (${betSlip.length} Picks)`;
 
-        const header = `📋 Audit the Odds Bet Slip
-🗓️ Generated on: ${new Date().toLocaleString()}
-💰 Bankroll: $${filters.bankroll.toFixed(2)}
---
-Filter Settings:
-  - Show +EV Only: ${filters.showPositiveEVOnly ? '✅' : '❌'}
-  - Min Momentum: ${filters.minMomentum}%
-  - Min Odds: ${filters.minOdds || 'N/A'}
---
-`;
-        const footer = `\n--\nFind your edge at audittheodds.com`;
-        
-        const textToCopy = header + betSlipText + footer;
+        const settings = [
+            `Min Odds: ${filters.minOdds || 'None'}`,
+            `Min Mom: ${filters.minMomentum || 'None'}%`,
+            `Teams: ${filters.homeTeamsOnly ? 'Home Only' : 'All'}`,
+            `Trend: ${filters.fadeMomentum ? 'Fade' : 'Standard'}`
+        ].join(' | ');
+
+        const header = `${title}\nv13.3 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
+
+        const betSlipText = betSlip.map(bet => {
+            const game = allGames.find(g => g.id === bet.gameId);
+            if (!game) return '';
+
+            const momentumResult = getMomentumAdjustedProbability(game, game.historicalData);
+            const momentumText = `Mom: ${momentumResult.shift >= 0 ? '+' : ''}${(momentumResult.shift * 100).toFixed(1)}%`;
+            
+            const oddsText = decimalToAmerican(bet.odds);
+
+            let betName = bet.team; // Default to team name
+
+            if (bet.betLabel.includes('Spread:')) {
+                const parts = bet.betLabel.match(/\((.*)\)/);
+                if (parts) {
+                    betName = `${bet.team} ${parts[1]}`;
+                }
+            } else if (bet.betLabel.includes('Total:')) {
+                const parts = bet.betLabel.match(/Total: (Over|Under) \((.*)\)/);
+                if (parts) {
+                    betName = `${parts[1]} ${parts[2]}`;
+                }
+            }
+
+            const matchup = `${game.away_team} @ ${game.home_team}`;
+
+            return `${betName} (${oddsText} | ${momentumText})\n${matchup}`;
+        }).join('\n\n');
+
+        const textToCopy = `${header}\n\n${betSlipText}`;
         
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
@@ -571,7 +592,7 @@ Filter Settings:
         document.execCommand('copy');
         document.body.removeChild(tempTextarea);
 
-    }, [betSlip, filters.bankroll, filters.showPositiveEVOnly, filters.minMomentum, filters.minOdds]);
+    }, [betSlip, allGames, filters]);
 
     const filteredGames = useMemo(() => {
         // 1. Map over games to calculate all possible EVs first.
@@ -831,5 +852,4 @@ Filter Settings:
         </div>
     );
 }
-
 
