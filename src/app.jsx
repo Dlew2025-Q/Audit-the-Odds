@@ -111,7 +111,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-slate-900 dark:text-white">
                     Audit the Odds
-                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.2</span>
+                    <span className="text-lg align-middle font-medium text-slate-500 dark:text-slate-400">v12.3</span>
                 </h1>
                 <p className="text-lg text-slate-600 dark:text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -565,6 +565,8 @@ Filter Settings:
 --
 `;
         const footer = `\n--\nFind your edge at audittheodds.com`;
+        
+        const textToCopy = header + betSlipText + footer;
         
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = textToCopy;
