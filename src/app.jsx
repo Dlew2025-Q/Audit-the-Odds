@@ -157,7 +157,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Momentum Swing
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.32</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.33</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -639,21 +639,26 @@ export default function App() {
             `Trend: ${filters.fadeMomentum ? 'Fade' : 'Standard'}`
         ].join(' | ');
 
-        const header = `${title}\nv13.32 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
+        const header = `${title}\nv13.33 | Generated: ${new Date().toLocaleString()} | Settings: ${settings}`;
 
         const betSlipText = betSlip.map(bet => {
             const game = allGames.find(g => g.id === bet.gameId);
             if (!game) return '';
             
             const awayMomentumShift = getMomentumAdjustedProbability(game, game.historicalData).shift;
-            let betMomentumValue = awayMomentumShift;
-
-            // If the bet is on the home team (and not a total), invert the momentum value.
-            if (!bet.betLabel.includes('Total:') && bet.betLabel.includes(game.home_team)) {
-                betMomentumValue = -awayMomentumShift;
+            
+            let momentumText;
+            if (filters.fadeMomentum) {
+                const absMomentum = Math.abs(awayMomentumShift * 100);
+                momentumText = `Fade Mom: +${absMomentum.toFixed(1)}%`;
+            } else {
+                let betMomentumValue = awayMomentumShift;
+                // If the bet is on the home team (and not a total), invert the momentum value.
+                if (!bet.betLabel.includes('Total:') && bet.betLabel.includes(game.home_team)) {
+                    betMomentumValue = -awayMomentumShift;
+                }
+                momentumText = `Mom: ${betMomentumValue >= 0 ? '+' : ''}${(betMomentumValue * 100).toFixed(1)}%`;
             }
-
-            const momentumText = `Mom: ${betMomentumValue >= 0 ? '+' : ''}${(betMomentumValue * 100).toFixed(1)}%`;
             
             const oddsText = decimalToAmerican(bet.odds);
             const evText = `EV: ${bet.ev >= 0 ? '+' : ''}${(bet.ev * 100).toFixed(1)}%`;
@@ -938,5 +943,4 @@ export default function App() {
         </div>
     );
 }
-
 
