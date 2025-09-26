@@ -56,16 +56,40 @@ const getMomentumAdjustedProbability = (currentGame, historicalGame) => {
 
 const LOGO_BASE_URL = 'https://a.espncdn.com/i/teamlogos';
 const TEAM_INFO = {
-    'Arizona Cardinals': { id: '134931', logoId: 'nfl/500/ari.png' },'Atlanta Falcons': { id: '134919', logoId: 'nfl/500/atl.png' },'Baltimore Ravens': { id: '134925', logoId: 'nfl/500/bal.png' },'Buffalo Bills': { id: '134910', logoId: 'nfl/500/buf.png' },'Carolina Panthers': { id: '134932', logoId: 'nfl/500/car.png' },'Chicago Bears': { id: '134914', logoId: 'nfl/500/chi.png' },'Cincinnati Bengals': { id: '134916', logoId: 'nfl/500/cin.png' },'Cleveland Browns': { id: '134915', logoId: 'nfl/500/cle.png' },'Dallas Cowboys': { id: '134923', logoId: 'nfl/500/dal.png' },'Denver Broncos': { id: '134926', logoId: 'nfl/500/den.png' },'Detroit Lions': { id: '134913', logoId: 'nfl/500/det.png' },'Green Bay Packers': { id: '134912', logoId: 'nfl/500/gb.png' },'Houston Texans': { id: '134938', logoId: 'nfl/500/hou.png' },'Indianapolis Colts': { id: '134918', logoId: 'nfl/500/ind.png' },'Jacksonville Jaguars': { id: '134933', logoId: 'nfl/500/jax.png' },'Kansas City Chiefs': { id: '134921', logoId: 'nfl/500/kc.png' },'Las Vegas Raiders': { id: '134922', logoId: 'nfl/500/lv.png' },'Los Angeles Chargers': { id: '134928', logoId: 'nfl/500/lac.png' },'Los Angeles Rams': { id: '134930', logoId: 'nfl/500/lar.png' },'Miami Dolphins': { id: '134909', logoId: 'nfl/500/mia.png' },'Minnesota Vikings': { id: '134911', logoId: 'nfl/500/min.png' },'New England Patriots': { id: '134908', logoId: 'nfl/500/ne.png' },'New Orleans Saints': { id: '134927', logoId: 'nfl/500/no.png' },'New York Giants': { id: '134924', logoId: 'nfl/500/nyg.png' },'New York Jets': { id: '134907', logoId: 'nfl/500/nyj.png' },'Philadelphia Eagles': { id: '134920', logoId: 'nfl/500/phi.png' },'Pittsburgh Steelers': { id: '134917', logoId: 'nfl/500/pit.png' },'San Francisco 49ers': { id: '134929', logoId: 'nfl/500/sf.png' },'Seattle Seahawks': { id: '134934', logoId: 'nfl/500/sea.png' },'Tampa Bay Buccaneers': { id: '134935', logoId: 'nfl/500/tb.png' },'Tennessee Titans': { id: '134936', logoId: 'nfl/500/ten.png' },'Washington Commanders': { id: '134937', logoId: 'nfl/500/wsh.png' },'Atlanta Hawks': { id: '134873', logoId: 'nba/500/atl.png' },'Boston Celtics': { id: '134860', logoId: 'nba/500/bos.png' },'Brooklyn Nets': { id: '134861', logoId: 'nba/500/bkn.png' },'Charlotte Hornets': { id: '134874', logoId: 'nba/500/cha.png' },'Chicago Bulls': { id: '134868', logoId: 'nba/500/chi.png' },'Cleveland Cavaliers': { id: '134867', logoId: 'nba/500/cle.png' },'Dallas Mavericks': { id: '134888', logoId: 'nba/500/dal.png' },'Denver Nuggets': { id: '134881', logoId: 'nba/500/den.png' },'Detroit Pistons': { id: '134866', logoId: 'nba/500/det.png' },'Golden State Warriors': { id: '134878', logoId: 'nba/500/gsw.png' },'Houston Rockets': { id: '134887', logoId: 'nba/500/hou.png' },'Indiana Pacers': { id: '134865', logoId: 'nba/500/ind.png' },'Los Angeles Clippers': { id: '134877', logoId: 'nba/500/lac.png' },'Los Angeles Lakers': { id: '134876', logoId: 'nba/500/lal.png' },'Memphis Grizzlies': { id: '134889', logoId: 'nba/500/mem.png' },'Miami Heat': { id: '134875', logoId: 'nba/500/mia.png' },'Milwaukee Bucks': { id: '134864', logoId: 'nba/500/mil.png' },'Minnesota Timberwolves': { id: '134880', logoId: 'nba/500/min.png' },'New Orleans Pelicans': { id: '134890', logoId: 'nba/500/no.png' },'New York Knicks': { id: '134862', logoId: 'nba/500/nyk.png' },'Oklahoma City Thunder': { id: '134883', logoId: 'nba/500/okc.png' },'Orlando Magic': { id: '134872', logoId: 'nba/500/orl.png' },'Philadelphia 76ers': { id: '134863', logoId: 'nba/500/phi.png' },'Phoenix Suns': { id: '134879', logoId: 'nba/500/phx.png' },'Portland Trail Blazers': { id: '134882', logoId: 'nba/500/por.png' },'Sacramento Kings': { id: '134884', logoId: 'nba/500/sac.png' },'San Antonio Spurs': { id: '134886', logoId: 'nba/500/sa.png' },'Toronto Raptors': { id: '134869', logoId: 'nba/500/tor.png' },'Utah Jazz': { id: '134885', logoId: 'nba/500/utah.png' },'Washington Wizards': { id: '134871', logoId: 'nba/500/wsh.png' },'Arizona Diamondbacks': { id: '134891', logoId: 'mlb/500/ari.png' },'Atlanta Braves': { id: '134879', logoId: 'mlb/500/atl.png' },'Baltimore Orioles': { id: '134897', logoId: 'mlb/500/bal.png' },'Boston Red Sox': { id: '134884', logoId: 'mlb/500/bos.png' },'Chicago Cubs': { id: '134882', logoId: 'mlb/500/chc.png' },'Chicago White Sox': { id: '134902', logoId: 'mlb/500/chw.png' },'Cincinnati Reds': { id: '134883', logoId: 'mlb/500/cin.png' },'Cleveland Guardians': { id: '134903', logoId: 'mlb/500/cle.png' },'Colorado Rockies': { id: '134890', logoId: 'mlb/500/col.png' },'Detroit Tigers': { id: '134904', logoId: 'mlb/500/det.png' },'Houston Astros': { id: '134886', logoId: 'mlb/500/hou.png' },'Kansas City Royals': { id: '134905', logoId: 'mlb/500/kc.png' },'Los Angeles Angels': { id: '134901', logoId: 'mlb/500/laa.png' },'Los Angeles Dodgers': { id: '134880', logoId: 'mlb/500/lad.png' },'Miami Marlins': { id: '134878', logoId: 'mlb/500/mia.png' },'Milwaukee Brewers': { id: '134885', logoId: 'mlb/500/mil.png' },'Minnesota Twins': { id: '134906', logoId: 'mlb/500/min.png' },'New York Mets': { id: '134877', logoId: 'mlb/500/nym.png' },'New York Yankees': { id: '134899', logoId: 'mlb/500/nyy.png' },'Oakland Athletics': { id: '134900', logoId: 'mlb/500/oak.png' },'Philadelphia Phillies': { id: '134876', logoId: 'mlb/500/phi.png' },'Pittsburgh Pirates': { id: '134881', logoId: 'mlb/500/pit.png' },'San Diego Padres': { id: '134892', logoId: 'mlb/500/sd.png' },'San Francisco Giants': { id: '134893', logoId: 'mlb/500/sf.png' },'Seattle Mariners': { id: '134896', logoId: 'mlb/500/sea.png' },'St. Louis Cardinals': { id: '134888', logoId: 'mlb/500/stl.png' },'Tampa Bay Rays': { id: '134898', logoId: 'mlb/500/tb.png' },'Texas Rangers': { id: '134895', logoId: 'mlb/500/tex.png' },'Toronto Blue Jays': { id: '134894', logoId: 'mlb/500/tor.png' },'Washington Nationals': { id: '134875', logoId: 'mlb/500/wsh.png' },'BC Lions': { id: '135246', logoId: 'cfl/500/bc.png' },'Calgary Stampeders': { id: '135248', logoId: 'cfl/500/cgy.png' },'Edmonton Elks': { id: '135247', logoId: 'cfl/500/edm.png' },'Saskatchewan Roughriders': { id: '135249', logoId: 'cfl/500/ssk.png' },'Winnipeg Blue Bombers': { id: '135250', logoId: 'cfl/500/wpg.png' },'Hamilton Tiger-Cats': { id: '135251', logoId: 'cfl/500/ham.png' },'Toronto Argonauts': { id: '135252', logoId: 'cfl/500/tor.png' },'Ottawa Redblacks': { id: '137459', logoId: 'cfl/500/ott.png' },'Montreal Alouettes': { id: '135253', logoId: 'cfl/500/mtl.png' },'Alabama Crimson Tide': { id: '134803', logoId: 'ncf/500/333.png' },'Georgia Bulldogs': { id: '134804', logoId: 'ncf/500/61.png' },'Ohio State Buckeyes': { id: '134798', logoId: 'ncf/500/194.png' },'Michigan Wolverines': { id: '134805', logoId: 'ncf/500/130.png' },'Texas Longhorns': { id: '134823', logoId: 'ncf/500/251.png' },'USC Trojans': { id: '134840', logoId: 'ncf/500/30.png' },'Notre Dame Fighting Irish': { id: '134802', logoId: 'ncf/500/87.png' },'Clemson Tigers': { id: '134812', logoId: 'ncf/500/228.png' },'LSU Tigers': { id: '134807', logoId: 'ncf/500/99.png' },'Penn State Nittany Lions': { id: '134799', logoId: 'ncf/500/213.png' },
+    'Arizona Cardinals': { id: '134931', logoId: 'nfl/500/ari.png' },'Atlanta Falcons': { id: '134919', logoId: 'nfl/500/atl.png' },'Baltimore Ravens': { id: '134925', logoId: 'nfl/500/bal.png' },'Buffalo Bills': { id: '134910', logoId: 'nfl/500/buf.png' },'Carolina Panthers': { id: '134932', logoId: 'nfl/500/car.png' },'Chicago Bears': { id: '134914', logoId: 'nfl/500/chi.png' },'Cincinnati Bengals': { id: '134916', logoId: 'nfl/500/cin.png' },'Cleveland Browns': { id: '134915', logoId: 'nfl/500/cle.png' },'Dallas Cowboys': { id: '134923', logoId: 'nfl/500/dal.png' },'Denver Broncos': { id: '134926', logoId: 'nfl/500/den.png' },'Detroit Lions': { id: '134913', logoId: 'nfl/500/det.png' },'Green Bay Packers': { id: '134912', logoId: 'nfl/500/gb.png' },'Houston Texans': { id: '134938', logoId: 'nfl/500/hou.png' },'Indianapolis Colts': { id: '134918', logoId: 'nfl/500/ind.png' },'Jacksonville Jaguars': { id: '134933', logoId: 'nfl/500/jax.png' },'Kansas City Chiefs': { id: '134921', logoId: 'nfl/500/kc.png' },'Las Vegas Raiders': { id: '134922', logoId: 'nfl/500/lv.png' },'Los Angeles Chargers': { id: '134928', logoId: 'nfl/500/lac.png' },'Los Angeles Rams': { id: '134930', logoId: 'nfl/500/lar.png' },'Miami Dolphins': { id: '134909', logoId: 'nfl/500/mia.png' },'Minnesota Vikings': { id: '134911', logoId: 'nfl/500/min.png' },'New England Patriots': { id: '134908', logoId: 'nfl/500/ne.png' },'New Orleans Saints': { id: '134927', logoId: 'nfl/500/no.png' },'New York Giants': { id: '134924', logoId: 'nfl/500/nyg.png' },'New York Jets': { id: '134907', logoId: 'nfl/500/nyj.png' },'Philadelphia Eagles': { id: '134920', logoId: 'nfl/500/phi.png' },'Pittsburgh Steelers': { id: '134917', logoId: 'nfl/500/pit.png' },'San Francisco 49ers': { id: '134929', logoId: 'nfl/500/sf.png' },'Seattle Seahawks': { id: '134934', logoId: 'nfl/500/sea.png' },'Tampa Bay Buccaneers': { id: '134935', logoId: 'nfl/500/tb.png' },'Tennessee Titans': { id: '134936', logoId: 'nfl/500/ten.png' },'Washington Commanders': { id: '134937', logoId: 'nfl/500/wsh.png' },'Atlanta Hawks': { id: '134873', logoId: 'nba/500/atl.png' },'Boston Celtics': { id: '134860', logoId: 'nba/500/bos.png' },'Brooklyn Nets': { id: '134861', logoId: 'nba/500/bkn.png' },'Charlotte Hornets': { id: '134874', logoId: 'nba/500/cha.png' },'Chicago Bulls': { id: '134868', logoId: 'nba/500/chi.png' },'Cleveland Cavaliers': { id: '134867', logoId: 'nba/500/cle.png' },'Dallas Mavericks': { id: '134888', logoId: 'nba/500/dal.png' },'Denver Nuggets': { id: '134881', logoId: 'nba/500/den.png' },'Detroit Pistons': { id: '134866', logoId: 'nba/500/det.png' },'Golden State Warriors': { id: '134878', logoId: 'nba/500/gsw.png' },'Houston Rockets': { id: '134887', logoId: 'nba/500/hou.png' },'Indiana Pacers': { id: '134865', logoId: 'nba/500/ind.png' },'Los Angeles Clippers': { id: '134877', logoId: 'nba/500/lac.png' },'Los Angeles Lakers': { id: '134876', logoId: 'nba/500/lal.png' },'Memphis Grizzlies': { id: '134889', logoId: 'nba/500/mem.png' },'Miami Heat': { id: '134875', logoId: 'nba/500/mia.png' },'Milwaukee Bucks': { id: '134864', logoId: 'nba/500/mil.png' },'Minnesota Timberwolves': { id: '134880', logoId: 'nba/500/min.png' },'New Orleans Pelicans': { id: '134890', logoId: 'nba/500/no.png' },'New York Knicks': { id: '134862', logoId: 'nba/500/nyk.png' },'Oklahoma City Thunder': { id: '134883', logoId: 'nba/500/okc.png' },'Orlando Magic': { id: '134872', logoId: 'nba/500/orl.png' },'Philadelphia 76ers': { id: '134863', logoId: 'nba/500/phi.png' },'Phoenix Suns': { id: '134879', logoId: 'nba/500/phx.png' },'Portland Trail Blazers': { id: '134882', logoId: 'nba/500/por.png' },'Sacramento Kings': { id: '134884', logoId: 'nba/500/sac.png' },'San Antonio Spurs': { id: '134886', logoId: 'nba/500/sa.png' },'Toronto Raptors': { id: '134869', logoId: 'nba/500/tor.png' },'Utah Jazz': { id: '134885', logoId: 'nba/500/utah.png' },'Washington Wizards': { id: '134871', logoId: 'nba/500/wsh.png' },'Arizona Diamondbacks': { id: '134891', logoId: 'mlb/500/ari.png' },'Atlanta Braves': { id: '134879', logoId: 'mlb/500/atl.png' },'Baltimore Orioles': { id: '134897', logoId: 'mlb/500/bal.png' },'Boston Red Sox': { id: '134884', logoId: 'mlb/500/bos.png' },'Chicago Cubs': { id: '134882', logoId: 'mlb/500/chc.png' },'Chicago White Sox': { id: '134902', logoId: 'mlb/500/chw.png' },'Cincinnati Reds': { id: '134883', logoId: 'mlb/500/cin.png' },'Cleveland Guardians': { id: '134903', logoId: 'mlb/500/cle.png' },'Colorado Rockies': { id: '134890', logoId: 'mlb/500/col.png' },'Detroit Tigers': { id: '134904', logoId: 'mlb/500/det.png' },'Houston Astros': { id: '134886', logoId: 'mlb/500/hou.png' },'Kansas City Royals': { id: '134905', logoId: 'mlb/500/kc.png' },'Los Angeles Angels': { id: '134901', logoId: 'mlb/500/laa.png' },'Los Angeles Dodgers': { id: '134880', logoId: 'mlb/500/lad.png' },'Miami Marlins': { id: '134878', logoId: 'mlb/500/mia.png' },'Milwaukee Brewers': { id: '134885', logoId: 'mlb/500/mil.png' },'Minnesota Twins': { id: '134906', logoId: 'mlb/500/min.png' },'New York Mets': { id: '134877', logoId: 'mlb/500/nym.png' },'New York Yankees': { id: '134899', logoId: 'mlb/500/nyy.png' },'Oakland Athletics': { id: '134900', logoId: 'mlb/500/oak.png' },'Philadelphia Phillies': { id: '134876', logoId: 'mlb/500/phi.png' },'Pittsburgh Pirates': { id: '134881', logoId: 'mlb/500/pit.png' },'San Diego Padres': { id: '134892', logoId: 'mlb/500/sd.png' },'San Francisco Giants': { id: '134893', logoId: 'mlb/500/sf.png' },'Seattle Mariners': { id: '134896', logoId: 'mlb/500/sea.png' },'St. Louis Cardinals': { id: '134888', logoId: 'mlb/500/stl.png' },'Tampa Bay Rays': { id: '134898', logoId: 'mlb/500/tb.png' },'Texas Rangers': { id: '134895', logoId: 'mlb/500/tex.png' },'Toronto Blue Jays': { id: '134894', logoId: 'mlb/500/tor.png' },'Washington Nationals': { id: '134875', logoId: 'mlb/500/wsh.png' },'Alabama Crimson Tide': { id: '134803', logoId: 'ncf/500/333.png' },'Georgia Bulldogs': { id: '134804', logoId: 'ncf/500/61.png' },'Ohio State Buckeyes': { id: '134798', logoId: 'ncf/500/194.png' },'Michigan Wolverines': { id: '134805', logoId: 'ncf/500/130.png' },'Texas Longhorns': { id: '134823', logoId: 'ncf/500/251.png' },'USC Trojans': { id: '134840', logoId: 'ncf/500/30.png' },'Notre Dame Fighting Irish': { id: '134802', logoId: 'ncf/500/87.png' },'Clemson Tigers': { id: '134812', logoId: 'ncf/500/228.png' },'LSU Tigers': { id: '134807', logoId: 'ncf/500/99.png' },'Penn State Nittany Lions': { id: '134799', logoId: 'ncf/500/213.png' },'Atlanta Dream': { id: '135254', logoId: 'wnba/500/atl.png'},'Chicago Sky': { id: '135255', logoId: 'wnba/500/chi.png'},'Connecticut Sun': { id: '135256', logoId: 'wnba/500/conn.png'},'Dallas Wings': { id: '135265', logoId: 'wnba/500/dal.png'},'Indiana Fever': { id: '135257', logoId: 'wnba/500/ind.png'},'Las Vegas Aces': { id: '135264', logoId: 'wnba/500/lv.png'},'Los Angeles Sparks': { id: '135262', logoId: 'wnba/500/la.png'},'Minnesota Lynx': { id: '135263', logoId: 'wnba/500/min.png'},'New York Liberty': { id: '135258', logoId: 'wnba/500/nyi.png'},'Phoenix Mercury': { id: '135261', logoId: 'wnba/500/phx.png'},'Seattle Storm': { id: '135260', logoId: 'wnba/500/sea.png'},'Washington Mystics': { id: '135259', logoId: 'wnba/500/wsh.png'},
 };
-const getTeamInfo = (teamName) => {
+
+const NCAA_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg';
+const CFL_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/9/9e/CFL_Logo.svg';
+
+const getTeamInfo = (teamName, game) => {
     if (!teamName) return { name: 'Unknown', logo: '', id: null };
+    
+    const sportTitle = game?.sport_title?.toUpperCase();
+    if (sportTitle === 'CFL') {
+        return { name: teamName, logo: CFL_LOGO_URL, id: null };
+    }
+
     const teamKey = Object.keys(TEAM_INFO).find(key => teamName.includes(key));
     if (teamKey && TEAM_INFO[teamKey]) {
         const info = TEAM_INFO[teamKey];
-        const logo = info.logoId ? `${LOGO_BASE_URL}/${info.logoId}` : `https://placehold.co/96x96/e2e8f0/64748b?text=${teamName.substring(0,2)}`;
+        let logo = `https://placehold.co/96x96/e2e8f0/64748b?text=${teamName.substring(0,2)}`;
+        if (info.logoId) {
+            if (info.logoId.startsWith('http')) {
+                logo = info.logoId; // It's a full URL
+            } else {
+                logo = `${LOGO_BASE_URL}/${info.logoId}`; // It's a path
+            }
+        }
         return { name: teamName, logo: logo, id: info.id };
     }
+    
+    // Fallback logic for teams not found in TEAM_INFO
+    if (sportTitle === 'NCAAF' || sportTitle === 'CFB' || sportTitle === 'NCAAB') {
+        return { name: teamName, logo: NCAA_LOGO_URL, id: null };
+    }
+
+    // Default placeholder for other leagues if team not found
     return { name: teamName, logo: `https://placehold.co/96x96/e2e8f0/64748b?text=${teamName.substring(0,2)}`, id: null };
 };
 const SPORT_MAP = { 'NFL': 'Football', 'CFL': 'Football', 'NCAAF': 'Football', 'CFB': 'Football', 'MLB': 'Baseball', 'NBA': 'Basketball', 'WNBA': 'Basketball', 'SOCCER': 'Soccer', 'NHL': 'Hockey', 'NCAAB': 'Basketball' };
@@ -103,9 +127,9 @@ function Header({ onHelpClick }) {
                     opacity: 0.2;
                 }
                 @keyframes swing {
-                    0% { transform: rotate(20deg); }
-                    50% { transform: rotate(-20deg); }
-                    100% { transform: rotate(20deg); }
+                    0% { transform: rotate(50deg); }
+                    50% { transform: rotate(-50deg); }
+                    100% { transform: rotate(50deg); }
                 }
                 .pendulum-container {
                     position: absolute;
@@ -118,14 +142,14 @@ function Header({ onHelpClick }) {
                 }
                 .pendulum-svg {
                     position: absolute;
-                    top: -10%; 
+                    top: -40px; /* Start the pivot point higher up */
                     left: 50%;
-                    width: 150px; 
-                    height: 150px;
+                    width: 300px; /* Make the pendulum longer */
+                    height: 300px;
                     transform-origin: 50% 0; /* Swing from the top center */
-                    animation: swing 4s ease-in-out infinite;
+                    animation: swing 6s ease-in-out infinite; /* Slower, more majestic swing */
                     opacity: 0.25;
-                    margin-left: -75px;
+                    margin-left: -150px; /* Adjust for the new width */
                 }
              `}</style>
              <div className="pendulum-container">
@@ -142,7 +166,7 @@ function Header({ onHelpClick }) {
             <div className="text-center relative z-10">
                 <h1 className="text-4xl md:text-5xl font-extrabold mb-2 text-white">
                     Momentum Swing
-                    <span className="text-lg align-middle font-medium text-slate-400">v13.13</span>
+                    <span className="text-lg align-middle font-medium text-slate-400">v13.18</span>
                 </h1>
                 <p className="text-lg text-slate-400">
                     Find value by analyzing live betting lines for today's games.
@@ -157,8 +181,8 @@ function GameCard({ game, addBet }) {
     const [evAway, setEvAway] = useState(0);
     const [evHome, setEvHome] = useState(0);
 
-    const awayTeamInfo = getTeamInfo(game.away_team);
-    const homeTeamInfo = getTeamInfo(game.home_team);
+    const awayTeamInfo = getTeamInfo(game.away_team, game);
+    const homeTeamInfo = getTeamInfo(game.home_team, game);
     const momentumResult = useMemo(() => getMomentumAdjustedProbability(game, game.historicalData), [game]);
 
     const bookmaker = game.bookmakers?.[0];
@@ -204,9 +228,38 @@ function GameCard({ game, addBet }) {
         addBet(bet);
     };
 
-    const momentumArrow = () => {
-        if (momentumResult.shift === 0) return '';
-        return momentumResult.shift > 0 ? '⬆️' : '⬇️';
+    const renderMomentumDisplay = () => {
+        if (momentumResult.status !== 'ok') {
+            return (
+                <div className="text-slate-500 text-center text-sm p-2 rounded-lg bg-slate-800">
+                    Momentum: N/A
+                </div>
+            );
+        }
+
+        const awayMomentum = momentumResult.shift * 100;
+        const homeMomentum = -awayMomentum;
+
+        const formatMomentum = (momentum) => {
+            if (Math.abs(momentum) < 0.1) return <span className="font-mono text-slate-500">--</span>;
+            const sign = momentum > 0 ? '+' : '';
+            const color = momentum > 0 ? 'text-green-400' : 'text-red-400';
+            const arrow = momentum > 0 ? '⬆️' : '⬇️';
+            return <span className={`font-mono ${color}`}>{sign}{momentum.toFixed(1)}% {arrow}</span>;
+        };
+
+        return (
+            <div className="flex flex-col space-y-2 text-sm p-3 rounded-lg bg-slate-800 border border-slate-700">
+                <div className="flex justify-between items-center">
+                    <span className="font-semibold">{awayTeamInfo.name} Mom:</span>
+                    {formatMomentum(awayMomentum)}
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="font-semibold">{homeTeamInfo.name} Mom:</span>
+                    {formatMomentum(homeMomentum)}
+                </div>
+            </div>
+        );
     };
 
     // JSX for Moneyline Display
@@ -307,7 +360,7 @@ function GameCard({ game, addBet }) {
                             <span className="font-mono">{evHome.toFixed(2)}%</span>
                         </div>
                     </div>
-                     <p className="text-center text-sm text-slate-500">Momentum: {momentumResult.status === 'ok' ? `${(Math.abs(momentumResult.shift) * 100).toFixed(1)}% ${momentumArrow()}` : 'N/A'}</p>
+                    {renderMomentumDisplay()}
                 </div>
             </div>
             {(spreadMarket || totalMarket) && (
@@ -332,7 +385,7 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets })
     return (
         <div className="mb-4 p-4 rounded-xl bg-slate-900 border border-slate-800">
              <div className="grid grid-cols-2 gap-4">
-                <label className="flex items-center space-x-2">
+                 <label className="flex items-center space-x-2">
                     <input type="checkbox" name="showPositiveEVOnly" checked={filters.showPositiveEVOnly} onChange={handleFilterChange} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
                     <span className="text-sm">Only Show +EV</span>
                 </label>
@@ -340,11 +393,17 @@ function FilterControls({ filters, setFilters, resetApp, handleBuildKellyBets })
                     <input type="checkbox" name="fadeMomentum" checked={filters.fadeMomentum} onChange={handleFilterChange} className="form-checkbox h-4 w-4 text-blue-600 rounded" />
                     <span className="text-sm">Fade Momentum</span>
                 </label>
-                 <label className="flex flex-col space-y-1">
-                    <span className="text-sm">Min Odds</span>
-                    <input type="text" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" placeholder="+100 or -110" />
-                </label>
-                 <label className="flex flex-col space-y-1">
+                <div className="grid grid-cols-2 gap-x-4 col-span-2">
+                    <label className="flex flex-col space-y-1">
+                        <span className="text-sm">Min Odds</span>
+                        <input type="text" name="minOdds" value={filters.minOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" placeholder="+100" />
+                    </label>
+                    <label className="flex flex-col space-y-1">
+                        <span className="text-sm">Max Odds</span>
+                        <input type="text" name="maxOdds" value={filters.maxOdds} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" placeholder="+400" />
+                    </label>
+                </div>
+                 <label className="flex flex-col space-y-1 col-span-2">
                     <span className="text-sm">Min Momentum %</span>
                     <input type="number" name="minMomentum" value={filters.minMomentum} onChange={handleFilterChange} className="form-input rounded-md text-sm bg-slate-800 border border-slate-700" />
                 </label>
@@ -439,6 +498,7 @@ export default function App() {
         showPositiveEVOnly: false,
         sortBy: 'commence_time',
         minOdds: '', 
+        maxOdds: '',
         minMomentum: 0,
         bankroll: 500,
         homeTeamsOnly: false,
@@ -672,9 +732,17 @@ export default function App() {
             if (!isNaN(minOddsDecimal)) {
                 filtered = filtered.filter(game => {
                     const check = (odds) => odds && odds >= minOddsDecimal;
-                    return check(game.moneyline_away) || check(game.moneyline_home) ||
-                           check(game.spread_away_odds) || check(game.spread_home_odds) ||
-                           check(game.total_over_odds) || check(game.total_under_odds);
+                    return check(game.moneyline_away) || check(game.moneyline_home)
+                });
+            }
+        }
+
+        if (filters.maxOdds) {
+            const maxOddsDecimal = americanToDecimal(filters.maxOdds);
+            if (!isNaN(maxOddsDecimal)) {
+                filtered = filtered.filter(game => {
+                    const check = (odds) => !odds || odds <= maxOddsDecimal;
+                    return check(game.moneyline_away) && check(game.moneyline_home)
                 });
             }
         }
@@ -814,8 +882,8 @@ export default function App() {
         { name: 'NBA', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png' },
         { name: 'MLB', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png' },
         { name: 'NHL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png' },
-        { name: 'NCAAF', src: 'https://a.espncdn.com/i/teamlogos/ncaa/500/ncaa.png' },
-        { name: 'CFL', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/cfl.png' },
+        { name: 'NCAAF', src: 'https://upload.wikimedia.org/wikipedia/commons/d/dd/NCAA_logo.svg' },
+        { name: 'CFL', src: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/CFL_Logo.svg' },
         { name: 'WNBA', src: 'https://a.espncdn.com/i/teamlogos/leagues/500/wnba.png' },
         { name: 'Premier League', src: 'https://a.espncdn.com/i/leaguelogos/soccer/500/23.png' }
     ];
@@ -908,13 +976,6 @@ export default function App() {
         </div>
     );
 }
-
-
-
-
-
-
-
 
 
 
